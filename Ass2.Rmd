@@ -15,39 +15,41 @@ library ("readr")
 library ("knitr")
 library ("stringr")
 library ("xml2")
+library ("ggplot2")
+
 ```
 
 
-```{r}
+```{r, echo=FALSE}
 link_ipaidabribe = paste("http://www.ipaidabribe.com/reports/paid?page=", 0:99, 0, sep = "")
 
 scrape_ipaidabribe = function (link_ipaidabribe) {
   my.link = read_html(link_ipaidabribe, encoding= "UTF-8")
-  my.location = my.link %>%
+  location = my.link %>%
     html_nodes(".location " ) %>%
     html_text()
-  my.date = my.link %>%
+  date = my.link %>%
     html_nodes(".date " ) %>%
     html_text()
-  my.transactiondetail = my.link %>%
+  transactiondetail = my.link %>%
     html_nodes(".transaction a" ) %>%
     html_text()
-  my.depname = my.link %>%
+  depname = my.link %>%
     html_nodes(".name a" ) %>%
     html_text()
-  my.title = my.link %>%
+  title = my.link %>%
     html_nodes(".heading-3 a" ) %>%
     html_text()
-  my.views = my.link %>%
+  views = my.link %>%
     html_nodes(".overview .views" ) %>%
     html_text()
-  my.payment = my.link %>%
+  payment = my.link %>%
     html_nodes(".paid-amount span" ) %>%
     html_text()
-  my.refnumber = my.link %>%
+  refnumber = my.link %>%
     html_nodes(".unique-reference" ) %>%
     html_text()
-  return (cbind(my.title, my.payment, my.depname, my.transactiondetail, my.views, my.location, my.date, my.refnumber))  
+  return (cbind(title, payment, depname, transactiondetail, views, location, date, refnumber))  
 }
 
 my.ipaidabribe.data = list() 
@@ -62,7 +64,77 @@ df=ldply(my.ipaidabribe.data, data.frame)
 ```
 
 
-```{r}
+```{r, echo=FALSE}
 df.backup = df
+df$payment = gsub(",","",df$payment)
+df$payment = as.numeric(word(df$payment, +3)) # generating variable with only the price
+```
+
+One interesting thing to analyze in this data could be how the bribes vary in size. The mean, median, maximum and minimum of the bribe payments are shown in table 1. as we see there is a very big gab between the highest and lowest payment, but its alså worth to notise the very big gab between the mean and median. 
+
+Table 1 - Summary statistics
+```{r, echo=FALSE}
+summary(df$payment)
+
+```
+
+Since theres such a big variation in the size of the amounts being payed we We consider the distribution of payments. In figure 1 the density is shown to the log of payments.
+
+```{r, echo=FALSE}
+p = ggplot(data = df, aes(x = payment))
+p = p + geom_density() + labs(title = "Figure 1: Distribution of bribe payments", x = "Log(Payment)", y = "Density")
+p = p + scale_x_log10()
+p = p + theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(),
+              axis.line = element_line(colour = "black"))
+plot(p)
+
+```
+
+
+
+But who primarily receives the bribe and for what ? this is what we are going to consider in the next section. 
+
+```{r, echo=FALSE}
+df.dep = df %>%
+  filter(!is.na(depname)) %>% #Removing paintings with missing department
+  group_by(depname)
+
+p = ggplot(data = df.dep, aes(x = depname))
+p = p + geom_histogram() + coord_flip() + labs(title = "Figure 2: How many bribes do the departments get", 
+                                               x = "Department", 
+                                               y = "Number of bribes")
+p = p + theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(),
+              axis.line = element_line(colour = "black"))
+plot(p)
+```
+As figure 2 shows the majority of the bribes goes to municipal service. Lets look into what type of actions the municipalities are getting bribed for. 
+
+```{r, echo=FALSE}
+df.transaction = subset(df, depname=="Municipal Services") %>%
+  filter(!is.na(transactiondetail)) %>% #Removing paintings with missing department
+  group_by(transactiondetail)
+
+p = ggplot(data = df.transaction, aes(x = transactiondetail))
+p = p + geom_histogram() + coord_flip() + labs(title = "Figure 3: What do the municipalities get bribed for", 
+                                               x = "Action", 
+                                               y = "Number of bribes")
+p = p + theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(),
+              axis.line = element_line(colour = "black"))
+plot(p)
+```
+Figure 3 shows the vast majority of the bribes goes to the category "Birth Certificates"
+
+Mapping the number of observations in each state
+```{r}
+df$state = strsplit(df$location, split="//,//"")
+ packages for manipulating and mapping spatial data
+install.packages("maptools")
+library("maptools")
 
 ```
