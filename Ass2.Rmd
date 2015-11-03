@@ -8,20 +8,18 @@ output: pdf_document
 
 
 ```{r}
+library ("plyr")
 library ("dplyr")
 library ("rvest")
 library ("readr")
 library ("knitr")
 library ("stringr")
 library ("xml2")
-library ("plyr")
 ```
 
 
 ```{r}
-css.selector = " .location , .date , .transaction a , .name a , .heading-3 a , .views , .paid-amount span, .unique-reference "
-link_ipaidabribe = paste("http://www.ipaidabribe.com/reports/all?page=", 1:200, sep = "")
-link =  "http://www.ipaidabribe.com/reports/all#gsc.tab=0"
+link_ipaidabribe = paste("http://www.ipaidabribe.com/reports/paid?page=", 0:99, 0, sep = "")
 
 scrape_ipaidabribe = function (link_ipaidabribe) {
   my.link = read_html(link_ipaidabribe, encoding= "UTF-8")
@@ -41,7 +39,7 @@ scrape_ipaidabribe = function (link_ipaidabribe) {
     html_nodes(".heading-3 a" ) %>%
     html_text()
   my.views = my.link %>%
-    html_nodes(".views" ) %>%
+    html_nodes(".overview .views" ) %>%
     html_text()
   my.payment = my.link %>%
     html_nodes(".paid-amount span" ) %>%
@@ -49,11 +47,11 @@ scrape_ipaidabribe = function (link_ipaidabribe) {
   my.refnumber = my.link %>%
     html_nodes(".unique-reference" ) %>%
     html_text()
-  return (cbind(my.link, my.location, my.date, my.transactiondetail, my.depname, my.title, my.views, my.payment, my.refnumber))  
+  return (cbind(my.title, my.payment, my.depname, my.transactiondetail, my.views, my.location, my.date, my.refnumber))  
 }
 
 my.ipaidabribe.data = list() 
-for (i in link_ipaidabribe[1:200]){
+for (i in link_ipaidabribe){
   print(paste("processing", i, sep = " "))
   my.ipaidabribe.data[[i]] = scrape_ipaidabribe(i)
     Sys.sleep(0.25)
@@ -61,18 +59,10 @@ for (i in link_ipaidabribe[1:200]){
 }
 
 df=ldply(my.ipaidabribe.data, data.frame)
-
-
 ```
 
 
+```{r}
+df.backup = df
 
-
-
-You can also embed plots, for example:
-
-```{r, echo=FALSE}
-plot(cars)
 ```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
