@@ -1,8 +1,8 @@
 ---
-title: "Assignment 2 - group 16"
+title: "Assiment 2 - group 16"
 author: "Bjark Dahl Mogensen, Mikkel Mertz og Benjamin Wedel Mathiasen"
 date: "9. nov. 2015"
-output: html_document
+output: pdf_document
 ---
 
 
@@ -132,9 +132,9 @@ Figure 3 shows the vast majority of the bribes goes to the category "Birth Certi
 
 Mapping the number of observations in each state
 ```{r}
-#df$state = strsplit(df$location, split="//,//"")
-#packages for manipulating and mapping spatial data
-#install.packages("maptools")
-#library("maptools")
+df$state = strsplit(df$location, split="//,//"")
+ packages for manipulating and mapping spatial data
+install.packages("maptools")
+library("maptools")
 
 ```
