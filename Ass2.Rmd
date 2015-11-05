@@ -70,7 +70,7 @@ df$payment = gsub(",","",df$payment)
 df$payment = as.numeric(word(df$payment, +3)) # generating variable with only the price
 ```
 
-One interesting thing to analyze in this data could be how the bribes vary in size. The mean, median, maximum and minimum of the bribe payments are shown in table 1. as we see there is a very big gab between the highest and lowest payment, but its alså worth to notise the very big gab between the mean and median. 
+One interesting thing to analyze in this data could be how the bribes vary in size. The mean, median, maximum and minimum of the bribe payments are shown in table 1. as we see there is a very big gab between the highest and lowest payment, but its als? worth to notise the very big gab between the mean and median. 
 
 Table 1 - Summary statistics
 ```{r, echo=FALSE}
@@ -98,7 +98,7 @@ But who primarily receives the bribe and for what ? this is what we are going to
 
 ```{r, echo=FALSE}
 df.dep = df %>%
-  filter(!is.na(depname)) %>% #Removing paintings with missing department
+  filter(!is.na(depname)) %>% #Removing payments with missing department
   group_by(depname)
 
 p = ggplot(data = df.dep, aes(x = depname))
@@ -115,7 +115,7 @@ As figure 2 shows the majority of the bribes goes to municipal service. Lets loo
 
 ```{r, echo=FALSE}
 df.transaction = subset(df, depname=="Municipal Services") %>%
-  filter(!is.na(transactiondetail)) %>% #Removing paintings with missing department
+  filter(!is.na(transactiondetail)) %>% #Removing payments with missing transaction detail
   group_by(transactiondetail)
 
 p = ggplot(data = df.transaction, aes(x = transactiondetail))
@@ -130,10 +130,22 @@ plot(p)
 ```
 Figure 3 shows the vast majority of the bribes goes to the category "Birth Certificates"
 
-Mapping the number of observations in each state
+Mapping the number of observations in each state relative to population
 ```{r}
-df$state = strsplit(df$location, split="//,//"")
- packages for manipulating and mapping spatial data
+#Scraping populationdata for India from wikipedia:
+India_pop =  read_html("https://en.wikipedia.org/wiki/Demographics_of_India") %>%
+  html_nodes(xpath= '//*[@id="mw-content-text"]/table[4]') %>%
+  html_table( )
+df_India_pop=ldply(India_pop, data.frame)
+
+#creating a state-variable in df
+df$State = df$location %>% 
+  str_replace_all(pattern = "[A-Z][a-z]*\r\n" , replacement= " ") %>%
+  str_trim() %>%
+df$state_1 = gsub(",", "", df$State)
+
+
+packages for manipulating and mapping spatial data
 install.packages("maptools")
 library("maptools")
 
