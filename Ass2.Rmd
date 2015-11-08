@@ -7,7 +7,7 @@ output: html_document
 
 
 
-```{r, echo = FALSE, cache=FALSE}
+```{r, echo = FALSE, cache=FALSE, message=FALSE}
 library ("plyr")
 library ("dplyr")
 library ("rvest")
@@ -19,8 +19,7 @@ library ("ggplot2")
 library("mapproj")
 ```
 
-
-```{r, echo=FALSE, cache=FALSE}
+```{r, echo=FALSE, cache=FALSE, results='hide'}
 link_ipaidabribe = paste("http://www.ipaidabribe.com/reports/paid?page=", 0:99, 0, sep = "")
 
 scrape_ipaidabribe = function (link_ipaidabribe) {
@@ -64,25 +63,26 @@ df=ldply(my.ipaidabribe.data, data.frame)
 ```
 
 
-```{r, echo=FALSE, cache=FALSE}
+```{r, echo=FALSE, cache=FALSE, }
 df.backup = df
 df$payment = gsub(",","",df$payment)
 df$payment = as.numeric(word(df$payment, +3)) # generating variable with only the price
 ```
 
-This analysis seeks to illuminate the structure of bribes in India. We do this using data from the website ipaidabribe.com. This is a website where peoble can write if they bribed someone. Peoble are able to inform of various aspects of their bribe such as: how much they paid, where they paid it and to whom. Since the data relies on peoble to report their bribes themselfs we are not observing every bribe, but as long as there isn't a bias in the data left out this is not going to affect our main conclusions. You might think of it like this: if the older generation does not report any bribes and this subsection of the pupulation bribes peoble for different reasons this would bias our results. However we do not think this is a problem, so we keep to the information availible to us and even if it is only decribing a subsection of the population it is still relevant.   
+#Estimation of bribes in India
+This analysis seeks to illuminate the structure of bribes in India. We do this using data from the website ipaidabribe.com. This is a website where people can write if they bribed someone. Peoble are able to inform of various aspects of their bribe such as: how much they paid, where they paid it and to whom. Since the data relies on people to report their bribes themselves we are not observing every bribe, but as long as there isn't a bias in the data left out this is not going to affect our main conclusions. You might think of it like this: if the older generation does not report any bribes and this subsection of the pupulation bribes peoble for different reasons this would bias our results. However we do not think this is a problem, so we keep to the information availible to us and even if it is only describing a subsection of the population it is still relevant.   
 
-When considering the structure of bribes one interesting part to analyze could be the size of the bribes and how much they vary. The mean, median, maximum and minimum of the bribe payments are shown in table 1. as we see there is a very big gab between the highest and lowest payment, but its also worth to notise the very big gab between the mean and median.
+##Size of the bribes
+When considering the structure of bribes one interesting part to analyze could be the size of the bribes and how much they vary. The mean, median, maximum and minimum of the bribe payments are shown in *table 1*. as we see there is a very big gab between the highest and lowest payment, but its also worth to notice the very big gab between the mean and median.
 
-Table 1 - Summary statistics
+***Table 1 - Summary statistics***
 ```{r, echo=FALSE, cache=FALSE}
 summary(df$payment)
-
 ```
 
-Because of the large big variation in the size of the amounts being payed We consider the distribution of payments in figure 1. In figure 1 the density is shown to the log of payments to center the a bit. Even within this transformation the distribuion seems to have a very long tail to the right indicating that the majority of the payments are in the smaller area, but there is a few very large bribes. 
+Because of the large variation in the size of the amounts being payed we consider the distribution of payments in *figure 1*. In *figure 1* the density is shown to the log of payments to center it. Even within this transformation the distribuion seems to have a very long tail to the right indicating that the majority of the payments are in the smaller area, but there is a few very large bribes. 
 
-```{r, echo=FALSE, cache=FALSE}
+```{r, echo=FALSE, cache=FALSE, message=FALSE, warning=FALSE}
 df$India = "India"
 df$logpayments = log(df$payment)
 boxplot(logpayments~India, data = df, main = "Distribution of payments",
@@ -90,7 +90,9 @@ boxplot(logpayments~India, data = df, main = "Distribution of payments",
  # Jeg kan ikke lige finde ud af om det er bedre med et Boxplot, men ellers kan vi slette det ;D
 
 p = ggplot(data = df, aes(x = payment))
-p = p + geom_density() + labs(title = "Figure 1: Distribution of bribe payments", x = "Log(Payment)", y = "Density")
+p = p + geom_density() + labs(title = "Figure 1: Distribution of bribe payments",
+                              x = "Log(Payment)",
+                              y = "Density")
 p = p + scale_x_log10()
 p = p + theme(panel.grid.major = element_blank(),
               panel.grid.minor = element_blank(),
@@ -100,15 +102,17 @@ plot(p)
 
 ```
 
-As shown above the size of bribes vary a lot, but who primarily receives the bribe and for what? This is what we are going to consider in the next section. In this section we only consider the number of bribes and leaves the size of the bribe be for a moment. Figure 2 shows the number of bribes reported to each department. Amon the departments reported are the police, transportation, municipalities etc. 
 
-```{r, echo=FALSE}
+##Number of bribes 
+As shown above the size of bribes vary a lot, but who primarily receives the bribe and for what? This is what we are going to consider in the next section. In this section we only consider the number of bribes and leaves out the size of the bribe for a moment. *Figure 2* shows the number of bribes reported to each department. Among the departments reported are the police, transportation, municipalities etc. 
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
 df.dep = df %>%
   filter(!is.na(depname)) %>% #Removing payments with missing department
   group_by(depname)
 
 p = ggplot(data = df.dep, aes(x = depname))
-p = p + geom_histogram() + coord_flip() + labs(title = "Figure 2: How many bribes do the departments get", 
+p = p + geom_histogram() + coord_flip() + labs(title = "Figure 2: Number of bribes to each department", 
                                                x = "Department", 
                                                y = "Number of bribes")
 p = p + theme(panel.grid.major = element_blank(),
@@ -117,9 +121,10 @@ p = p + theme(panel.grid.major = element_blank(),
               axis.line = element_line(colour = "black"))
 plot(p)
 ```
-As figure 2 shows the majority of the bribes goes to municipal service, while "Food, Civil Suppliers and Consumer Affairs" and the police gets second and third most bribes. Since the majority of the bribes goes to municipality serveces it is interesting to see what kind of services the municipalities gets bribed for. This is shown in figure 3. 
 
-```{r, echo=FALSE}
+As *figure 2* shows the majority of the bribes goes to municipal service, while "Food, Civil Suppliers and Consumer Affairs" and the police gets second and third most bribes. Since the majority of the bribes goes to municipality serveces it is interesting to see what kind of services the municipalities gets bribed for. This is shown in *figure 3*. 
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
 df.transaction = subset(df, depname=="Municipal Services") %>%
   filter(!is.na(transactiondetail)) %>% #Removing payments with missing transaction detail
   group_by(transactiondetail)
@@ -134,12 +139,13 @@ p = p + theme(panel.grid.major = element_blank(),
               axis.line = element_line(colour = "black"))
 plot(p)
 ```
-As indicated by figure 3 the vast majority of the bribes goes to the category "Birth Certificates" and only a very small fraction of the bribes goes to the other categories with the largest being registration of land. 
 
-So far we have only considered the overall bribes and size of bribes in entire India. In this section however we dive a little bit more into the different states of India. We want to consider the average sum of payments per 10.000 inhabitants in the different states. This is illustrated in figure 4 where we plot the logarithmic transformation of the sum of payements per 10.000 individual in each state. As figure 4 shows there is a great different in the average payment. 
+As indicated by *figure 3* the vast majority of the bribes goes to the category "Birth Certificates" and only a very small fraction of the bribes goes to the other categories with the largest being registration of land. 
 
+##Size of the bribes in each state
+So far we have only considered the overall bribes and size of bribes in entire India. In this section however we dive a little bit more into the different states of India. We want to consider the average sum of payments per 10.000 inhabitants in the different states. This is illustrated in *figure 4* where we plot the logarithmic transformation of the sum of payements per 10.000 individual in each state. As *figure 4* shows there is a great difference in the average payment. 
 
-```{r, echo = FALSE}
+```{r, echo = FALSE, message=FALSE, warning=FALSE, results='hide'}
 #Scraping populationdata for India from wikipedia:
 India_pop =  read_html("https://en.wikipedia.org/wiki/Demographics_of_India") %>%
   html_nodes(xpath= '//*[@id="mw-content-text"]/table[4]') %>%
@@ -160,7 +166,7 @@ df_state = df %>%
   summarise(total.payments = sum(payment, na.rm = TRUE))
 df_state$state_2 = gsub("^\\s+", "", df_state$state_1)
 
-#By Comparing the data from wiki and the data from ipaidabribe we see that there are some of the state-names that differ. We make sure that at least the states with the biggest total payment are semilar in the two dataframes. We find out that there is a problem with New Delhi and fix that:
+#By Comparing the data from wiki and the data from ipaidabribe we see that there are some of the state-names that differ. We make sure that at least the states with the biggest total payment are similar in the two dataframes. We find that there is a problem with New Delhi and fix that:
 df_state[29,"state_2"]="Delhi"
 
 #Joining the data from wiki with df_state
@@ -184,4 +190,4 @@ plot(p)
 
 ```
 
-Some of the states as Manipur, Delhi and Arunachal Pradesh has a very low average, the logarithmic transformation is actually negative - indicating a payment between 0 and 1 per inhabitant. In the opposite side of the table Madhya Pradesh has by far the largest sum of payments per inhabitant
+Some of the states as Manipur, Delhi and Arunachal Pradesh has a very low average, the logarithmic transformation is actually negative - indicating a payment between 0 and 1 per inhabitant. In the opposite side of the table Madhya Pradesh has by far the largest sum of payments per inhabitant.
