@@ -87,7 +87,7 @@ df$India = "India"
 df$logpayments = log(df$payment)
 boxplot(logpayments~India, data = df, main = "Distribution of payments",
         ylab = "Log(Payment)")
- # Jeg kan ikke lige finde ud af om det er bedre med et Boxplot, men ellers kan vi slette det ;D
+
 
 p = ggplot(data = df, aes(x = payment))
 p = p + geom_density() + labs(title = "Figure 1: Distribution of bribe payments",
@@ -142,7 +142,7 @@ plot(p)
 
 As indicated by *figure 3* the vast majority of the bribes goes to the category "Birth Certificates" and only a very small fraction of the bribes goes to the other categories with the largest being registration of land. 
 
-##Size of the bribes in each state
+##Investigation of the differences between states
 So far we have only considered the overall bribes and size of bribes in entire India. In this section however we dive a little bit more into the different states of India. We want to consider the average sum of payments per 10.000 inhabitants in the different states. This is illustrated in *figure 4* where we plot the logarithmic transformation of the sum of payements per 10.000 individual in each state. As *figure 4* shows there is a great difference in the average payment. 
 
 ```{r, echo = FALSE, message=FALSE, warning=FALSE, results='hide'}
@@ -163,9 +163,10 @@ df$state_1 = gsub(",", "", df$State)
 df_state = df %>% 
   filter(!is.na(state_1) & !(df$state_1 =="")) %>% 
   group_by(state_1) %>% 
-  summarise(total.payments = sum(payment, na.rm = TRUE))
+  summarise(total.payments = sum(payment, na.rm = TRUE), n_bribes = n() )
 df_state$state_2 = gsub("^\\s+", "", df_state$state_1)
 
+?summarise
 #By Comparing the data from wiki and the data from ipaidabribe we see that there are some of the state-names that differ. We make sure that at least the states with the biggest total payment are similar in the two dataframes. We find that there is a problem with New Delhi and fix that:
 df_state[29,"state_2"]="Delhi"
 
@@ -177,17 +178,56 @@ df_state$pop1 = gsub("^\\s+", "", df_state$pop)
 #Construction a new variable 'relativepayment'
 as.numeric(df_state$pop1)
 as.numeric(df_state$total.payments)
-df_state$relativepayment = as.numeric(df_state$total.payments) / as.numeric(df_state$pop1) * 10000
+df_state$relativepayment = as.numeric(df_state$total.payments) / as.numeric(df_state$pop1) * 100000
 arrange(df_state, -relativepayment)
 
 #Plotting the data to se the states with the highest relative bribe payments
 p = ggplot(data = df_state, aes(x=state_2, y=relativepayment))
-p = p + geom_bar(stat = "identity") + coord_flip() + labs(title = "Figure 4: Log(payment pr. 10,000 inhabitants", 
+p = p + geom_bar(stat = "identity") + coord_flip() + labs(title = "Figure 4: Payment pr. 100,000 inhabitants", 
                                                x = "State", 
-                                               y = "Log(Total payment)")
+                                               y = "Log of payment pr. 100.000 inhabitants")
 p = p + scale_y_log10()
 plot(p)
 
 ```
 
-Some of the states as Manipur, Delhi and Arunachal Pradesh has a very low average, the logarithmic transformation is actually negative - indicating a payment between 0 and 1 per inhabitant. In the opposite side of the table Madhya Pradesh has by far the largest sum of payments per inhabitant.
+From *figure 4* we see, that there is huge variation in the number of bribes in each state. Theoretically there could be a lots of causes of this difference. Factors such as culture, education, demographics, economic situation in the state and urbanization might influence both the number and the size of bribes in a givens state. Since we only have a small part of the available data on ipaidabribe.com and only limited writingspace a adequate analysis of these factors are not possible. Therefore we focus on one of the above mentioned factors - Urbanization.
+
+Urbanization is a relevant issue in India in nearlye every matter regarding economics, corruption, living conditions etc. According to the World Bank 90 mio. people migrated from farms to cities in the last decade.The prospect of higher wages and better living standards is expected to draw 250 million more by 2030. (http://rmarkdown.rstudio.com/authoring_basics.html)
+
+The question is wether this huge movement of people have any influence on the level of corruption. You could for instance expect, that a side effect of the urbanization would be more employment in job functions that require a higher degree of education than for instance work in the agriculture. Such a development will (over time) lead to a generally higher level of education and since there is kind of consensus around the fact, that higher education often leads to better functioning democratic systems one could assume that the level of corruption would be lower in urban areas than in rural areas. 
+
+The purpose of *figure 5* is to inveatigate this theory. If the theory is correct, we should se a equalization between the states. We see a litle equalization, but it is difficult to see whether it is a significant change. 
+
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE, results='hide'}
+
+#Constructioon new variables for the relative payment/bribes pr. 10.000 urban inhabitants
+df_state$urbanpop=gsub(",", "",df_state$Urban.Population.24.)
+df_state$urbanpop1 = gsub("^\\s+", "", df_state$urbanpop)
+as.numeric(df_state$urbanpop1)
+df_state$urban_relativepayment = as.numeric(df_state$total.payments)/
+  as.numeric(df_state$urbanpop1)*100000
+df_state$share_urban_pop = as.numeric(df_state$urbanpop1)/as.numeric(df_state$pop1)
+df_state$Relativebribes = as.numeric(df_state$n_bribes)/as.numeric(df_state$pop1)
+df_state$Relativebribes_urban = as.numeric(df_state$n_bribes)/as.numeric(df_state$urbanpop)
+
+#Plotting the data to see the states with the highest relative bribe relative to urban population
+p = ggplot(data = df_state, aes(x=state_2, y=urban_relativepayment))
+p = p + geom_bar(stat="identity") + coord_flip() + labs(title = "Figure 5: Relative bribe-pay pr. 100,000 urban inhabitants", 
+                                               x = "State", 
+                                               y = "Log of payment pr. 100,000 urban inhabitants)")
+p = p + scale_y_log10()
+plot(p)
+
+
+p = ggplot(data = df_state, aes(x=relativepayment, y=share_urban_pop))
+p = p + geom_point() + coord_flip() + labs(title = "Figure 6: Relative payments compared to share of total population living in urban areas", 
+                                               x = "Log of payments pr. 100.000 inhabitants", 
+                                               y = "Share of population living in urban areas")
+p = p + scale_x_log10()
+plot(p)
+```
+
+In *figure 6* the picture is also pretty blurred. Again we must keep in mind, that this is a really small part of the total data available. If we increased the number of observation we might get another and more robust result. From *figure 6* we can not say much, but it is interesting, that the states with the most corruption typically have a urbanization-rate between 25 % and 50 %. Whether this pattern is due to underreporting in rural areas or there is a actual jump in corruption-rates at this interval we leave unanswered.
+
