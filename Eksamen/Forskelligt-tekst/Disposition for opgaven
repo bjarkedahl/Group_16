@@ -1,0 +1,26 @@
+Disposition for SDS-eksamensprojekt
+1.	Grundspørgsmålet for opgaven: Hvad afgør om en artikel bliver delt på Facebook?
+-	Motivation for spørgsmålet: Vi ved, at flere og flere, særligt unge, får deres primære nyheder fra sociale medier. Spørgsmålet er om det fører til en indsnævring af vores medievaner. Dvs. selvom verden bliver mere og mere forbundet, så bliver den nyhedsdækning, som vi oplever mere og mere fokuseret på vores egen virkelighed.
+-	Det er i hvert fald tilfæældet i f.eks. USA. Det skyldes bl.a. den måde de store søgemaskiner er bygget op: Brugs citat fra The Bubble theory
+-	I et bredere perspektiv har Zuckerman fundet en generelt mere hjemmefokuseret dækning på de sociale medier.
+-	Vi ønsker at lave samme analyse på danske medier og tager udgangspunkt i det største danske mediehus, DR, og Danmarks største papiravis, Politiken. Dette skal uddybes. Forsvar hvorfor det er repræsentativt mv. 
+
+2.	For at besvare grundspørgsmålet, skal vi først afklare, om der ovehovedet er et system i hvilke artikler, der deles. Det vil vi undersøge, ved at:
+a.	Lave en beskrivelse af det data vi har hentet, hvad det består af mv. Grundideen i vores analyse er at analysere det samme medie – bare på to forskellige platforme. Måske også deskriptive  grafer.
+b.	Opstille en probit/logit model som på baggrund af sektioner giver en sandsynlighed for, om artiklen kommer på FB eller ej.
+c.	Algoritmen fra gæsteforelæsningen: GLM-net, hvor ordene i artiklen bruges til at predicte om artiklen deles. 
+--> Dette bruges alene til at kunne konkludere hvorvidt vi kan se en tendens til et system i hvad der deles. 
+
+3.	[Teori-fyld og diskussion af konsekvenserne, hvis det er tilfældet?:] Det ser ud til at der er et system. Zuckerman og hans drenge har i USA fundet en klar tendens til, at de sociale medier er endnu mere skævvredet end de ’traditionelle medier’ i retning mod mere nære historier. Her tager vi hjemmesiderne som de traditionelle medier, og tjekker om medierne er mere biased på de sociale medier. 
+
+4.	Det vi bruger som proxy for om der er et bias mod nære historier er indland/udland forholdet på de forskellige medier. Således vil vi i første omgang:
+a.	Sammenligne indland/udland forholdet for hhv. facebook og hjemmesiden. Dette kan både ske på baggrund af deres egen sektionsinddeling og evt. vores egen på baggrund af hvilke lande og store byer, der optræder i artiklerne 
+--> dette skal vises gennem gode figurer.
+
+5.	Spørgsmålet er nu, hvor det bias vi har fundet kommer fra. I sidste ende er det naturligvis medierne, der vælger hvad der skal deles på FB. Men vi må gå ud fra, at deres beslutning om at dele/ikke dele i høj grad baserer sig på tidligere erfaringer med forskellige typer af historier. Dvs. hvad kan deres målgruppe godt lide og reagerer positivt på (likes, kommentarer og delinger)?? (Her kunne vi f.eks. få et citat fra den Facebook-ansvarlige el. lign. Om at der er tilfældet) – Så hvad bestemmer hvad der bonner positivt ud? To mulige svar på dette: Folk bedst kan lide indlandsstof/ting der er tæt på, eller at Facebook kun viser indlandsstof/ting der er tæt på?  Det er umuligt for os at afgøre, men vi vil gerne dykke lidt ned i, hvad der har indflydelse på, hvad der har succes på Facebook ved at:
+a.	Lave en model, der prøver at predicte antallet af interaktioner på baggrund af forskellige karakteristika
+
+6.	Diskussion: 
+a.	Vi har bare kigget på Facebook vs. De ’almindelige’ platforme. Men der er mange flere: Google, Twitter mv.
+b.	Mange dilemmaer, f.eks. at det ligger i vores natur, at vi gerne vil bekræfte vores eget verdensbillede, men hvor meget kommer herfra, og hvor meget kommer fra f.eks. Faceook??
+c.	Flere pointer her
