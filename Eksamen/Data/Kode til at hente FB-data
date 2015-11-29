@@ -1,0 +1,15 @@
+
+install.packages("Rfacebook")
+library("Rfacebook")
+
+token <- "CAACEdEose0cBAC6SWCrDI79tMmAiHXO03thO3eeBAgX07eGSbxX5ptm8eCB77XzYQ22uoiQSdZAPyjxbDuDjh8JQnpISsI2c40038BdvCe5VLpveMMDbJj7FwkAw9UKnmr8wMlF9aW7CgnI4sPLkh7YrUUq4IvocmhcMGQxz59hemZCaaAOPaiuxuoX3RLyErOKxFF6AZDZD" 
+
+page <- getPage("DRNyheder", token, n = 10000)
+
+write.csv(page, "C:/Users/Bjarke/Dropbox/Økonomistudie/8.Semester/Social data science/Eksamen/DRNyheder10000.csv", row.names = FALSE)
+
+
+page1 <- getPage("politiken", token, n=10000)
+
+
+write.csv(page1, "C:/Users/Bjarke/Dropbox/Økonomistudie/8.Semester/Social data science/Eksamen/Politiken.csv", row.names = FALSE)
