@@ -1,0 +1,324 @@
+---
+title: "What makes news social media news"
+author: "Benjamin Wedel Mathiasen, Bjarke Dahl Mogensen, Mikkel Mertz"
+output: html_document
+---
+
+\newpage
+\tableofcontents
+\newpage
+
+```{r, echo = FALSE, cache=FALSE, message=FALSE, warning=FALSE}
+# Load packages
+library ("plyr")
+library ("dplyr")
+library ("rvest")
+library ("readr")
+library ("knitr")
+library ("stringr")
+library ("xml2")
+library ("ggplot2")
+library("mapproj")
+library("tm")
+#library("austin")
+library("quanteda")
+library("stm")
+library("RTextTools")
+library("mfx")
+
+
+# Load data
+load(url("https://github.com/bjarkedahl/Group_16/blob/master/Subset%20of%204000%20obs%20from%20DR%20and%20Politiken.RData?raw=true"))
+
+```
+
+### Introduction
+social medias and in particular Facebook has become a part of the daily life during the last decade. Recent research has shown that a growing part of the younger generations get the majority of their news from social media with Facebook as a popular choice (xxx kildehenvisning: http://nyhederne.tv2.dk/nyheder/unge-f%C3%A5r-deres-nyheder-fra-sociale-netv%C3%A6rk). The increasing use of social media and the fact that a growing part of the younger generations get their news from social medias might explain why more an increasing proportion of danes read news every day (xxx kildehenvisning: DREAM rapport som kan findes p� side 55 her: http://www.dream.dk/sites/default/files/communication/Danske%20unges%20museums-%20og%20mediebrug%20-%20digital.pdf). 
+But are the news on social media representative? The vast majority if not all social media's monitor online behavior and use various algorithms to determine what specific stories the person of interest should be exposed to. On Facebook this means they control what news should pop up in the top of the newsfeed and thus getting most attention. 
+This implies that people mainly get exposed to stories fitting their own opinion thus rarely getting exposed to stories challenging their point of view. The fact that beliefs in this sense are amplified within the closed system that is your access to social media is referred to in the literature simply as "echo chamber" Sunstein (2001). The existing of echo chambers potentially narrow people's view of the world. An example of this ,taken from "The Filter Bubble": here two similar friends search for the same term on Google but get different results and also the number of results vary  (xxx kildehenvisning: Pariser, Eli. The Filter Bubble. 1st edition, VIKING: Penguin Press, 2011, pages 1-3). This happens because of Google's search algorithm that expose persons to different results, pending on previous search history. Though, not everyone agrees that this is in fact the case. Research made by The Media Insight Project found that in America 86% of people in the age group 18 to 34 years meet views different than their own on social media's, thus making the problem smaller or insignificant.  
+The majority of Danish news media's are represented both on a separate homepage and a Facebook page -  the Facebook page posting links to specific articles on their homepage. However far from all articles are posted here implying that selection occurs. But how is this selection made? Is it a random draw or is at a specific type of news qualifying for the Facebook page? it could seem reasonable to assume news media simply selecting the articles expected to be most popular in this specific setting thus in its very sense subjecting people getting their news solely from Facebook to a very selected subset of news. It could be the case that a higher share of domestic than international articles are posted on their Facebook page since domestic articles may be more relatable than international articles. If this is true it might be a significant factor in creating echo chambers. The aim of this paper is twofold: 
+1)	we wish to investigate what type of selection process going on between the official homepage and Facebook page for a subsection of Danish media 
+2)	we wish to investigate if it is a specific type of articles on facebook exposed to people
+We investigate the first by collecting every article published on DR's and Politiken's official homepage and look in to what characterize the articles suited for Facebook. We choose these specific medias since they are the two of the most read media's. For the second we look into the articles selected for Facebook and investigate if it is a specific type of articles exposed to people using the number of likes, comments and shares as a proxy for how many people getting exposed to the article. 
+We find that.
+In the next section .
+.
+.
+In this exam project we want to address whether or not a domestic article are more likely to be posted on the media's Facebook page than an international article. We will address this question for the non-commercial media "DR" and one of Denmark's biggest online newspapers "Politiken". Other sections than domestic and international will briefly be described but the main focus is on domestic versus international articles.
+
+
+
+### Data
+The data consists of articles scraped from DR and Politikken’s webpage and their respective Facebook pages “DR Nyheder” and “Politiken”. We have scraped all articles from 18th of November 2014 and one year forward. We have chosen to scrape articles for one year to put an upper limit on the number of articles scraped.  This gives us a total of 75,966 articles, 37747 articles From DR’s, and 37219 articles from Politikken’s. 
+
+#### Scraping the webpages
+In order to scrape DR and Politikken’s wepage we made use of the Google Chrome CSS selector extension “SelectorGadget”. We first scraped the media’s news archieve for the articles’ href link (article link) and the date of being posted on the webpage. When this information was obtained we used the article link to scrape the title and text of the articles. At last all this information was merged together in a data frame by the articles’ link. The news section in which the articles were posted was obtained from the articles’ link. Some article links were directing to an error-page.  These links were left out. Some of the articles’ text contained links to other articles which had the same CSS path as the article text meaning the links could not be deselected while the text was selected.  By use of the “gsub” command we removed these links. Alternatively, while scraping the article text, the links could have been removed by use of the “grebl” command but we could not get this to work. For practical reasons the articles were scraped in several rounds. Each news section was scraped separately and then all the articles were put together in a data frame at the end. Some articles appeared in more than one section. With a little inspection it was clear that these articles fitted into more than one section so we randomly removed duplicates. The Danish alphabet has some special letters (æ, ø, å) which turned out to have some implications. The letters were not displayed properly in Rstudio so we used the “gsub” command to substitute the wrongly displayed signs with the correct letters. #Dette er en meget meget grundig gennemgang i forhold til kommandoer osv. er det virkelig n�dvendigt ?
+
+#### Scraping the Facebook pages
+Scraping the medias Facebook pages are done using Facebook’s API, which is convenient. Practically we did this using the package “Rfacebook” in Rstudio the only thing that need to be stated is a token, which Facebook page to scrape and how many posts to scrape. The token controls what information about the posts is going to be scraped from the stated Facebook page. We scraped the last 1,000 posts to make sure we had posts going back to 18th of November 2014.
+
+#### Webpage and Facebook page merged
+The data from the media’s webpage and respective Facebook page is merged together by the article link. Everything posted on the Facebook page that is not posted on the webpage will be discarded during the merge.  The new data frame contains all articles scraped from the webpage and Facebook information about the articles posted on Facebook. 
+
+#### Too much data: Subsample
+In our final data frame, DR and Politiken were combined. This data frame contained 75,966 articles. We decided to delete some news sections since some of them contained few articles whereas other news sections have a separate Facebook page. News sections that have their own Facebook page will have a bias in the share of articles posted on Facebook since these articles mainly are posted on other Facebook pages than where we gathered our Facebook information from. We ended up with the following sections:  
+Domestic, International, Politics, Money, Economics, Culture, Science and The Magazine.
+
+Først lavede vi analyser på hele datasættet, men vi fandt ud af at det var for meget data og vores computere ikke kunne køre det. Så prøvede vi med 5000 observationer og det var også meget, så skar det ned til 4000. 
+ 
+
+
+### Descriptive statistics
+Only a small fraction of the articles on the wepages are posted on the Facebook pages. 4,499 articles corresponding to 11.9% of DR’s articles are posted on DR’s Facebook page. At Politikken, xxxxx articles corresponding to xxxx% of Politikken’s articles are posted on Politikken’s Facebook page. If we take a look at the share of articles posted on the Facebook page for each section we find that the weather section contributes with the highest share (21.25%). Hereafter comes the inland section with a share of 20.18% and the science section with a share of 19.31%. Politics has the fifth highest share (17.34%) while the international section has the eighth highest share (13.17%). Only 0.99% of articles from the sports section are shared. This is because sports has its own Facebook page called “DR Sporten”. The regional section also has its own Facebook Page, one for each region, but a lot of articles from the regional section are still shared on DR's main Facebook page "DR Nyheder". See figure xxx for the ranking of which section has the highest share of articles posted on Facebook.
+
+##### **Figure xxx - Share of articles from official homepage getting posted on Facebook page**  
+```{r, fig.height=4, echo=FALSE, cache=FALSE, message=FALSE, warning=FALSE}
+# Share of articles posted on Facebook by each section
+
+# By media
+Posted_section = DR_pol_sub %>%
+  group_by(media, section, FB_shared) %>% 
+  summarise(amount=n()) %>% 
+  mutate(pct=as.numeric(round(amount/sum(amount)*100, 2))) %>%
+  filter(!FB_shared == "0") %>%
+  ungroup
+
+
+p = ggplot(data = Posted_section, aes(x = reorder(section, pct), y = pct, fill = media))
+p = p + geom_bar(stat = "identity", position = "dodge", width = 0.8) + coord_flip() +
+  labs(x = "Section", y = "Proportion of articles")
+p = p + theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(),
+              axis.line = element_line(colour = "black"),
+              legend.position = "bottom",
+              legend.direction = "horizontal",
+              text = element_text(size=10))
+
+plot(p)
+
+```
+
+The lowest share of articles posted on Facebook in one day is 1.63% while the highest share in one day is 23.08%. If we remove the sports section the lowest share is almost unchanged with a share of 1.94% while the highest share increases to 36.11%. The highest amount of articles (including sports) posted on Facebook  in one day is 24 whilst the lowest is 1 article. On average 12.29 articles are posted on Facebook each day. For the whole period each article on average gets 359.84 likes, 70.39 comments and get shared 47.27 times. Each article on average get liked, commented or shared 457.5 times.
+
+##### **Figure xxx - Amount of average likes, comments and shares on Facebook**  
+```{r, fig.width=3.2, fig.height=4, echo=FALSE, cache=FALSE, message=FALSE, warning=FALSE}
+#Average likes
+
+# By media
+Likes = DR_pol_sub %>%
+  filter(FB_shared == "1") %>% 
+  group_by(media, section) %>% 
+  summarise(avg_likes = mean(likes_count)) %>% 
+  ungroup %>% 
+  arrange(-avg_likes)
+
+
+p = ggplot(data = Likes, aes(x = reorder(section, avg_likes), y = avg_likes, fill = media))
+p = p + geom_bar(stat = "identity", position = "dodge", width = 0.8) + coord_flip() +
+    labs(x = "Section", y = "Average number of \n likes per article")
+p = p + theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(),
+              axis.line = element_line(colour = "black"),
+              legend.position = "bottom",
+              legend.direction = "horizontal",
+              text = element_text(size=10))
+plot(p)
+
+
+#-----------------------------------------------------------------------------------
+
+#Average comments
+
+# By media
+Comments = DR_pol_sub %>%
+  filter(FB_shared == "1") %>% 
+  group_by(media, section) %>% 
+  summarise(avg_comments = mean(comments_count)) %>% 
+  ungroup %>% 
+  arrange(-avg_comments)
+
+
+p = ggplot(data = Comments, aes(x = reorder(section, avg_comments), y = avg_comments, fill = media))
+p = p + geom_bar(stat = "identity", position = "dodge", width = 0.8) + coord_flip() +
+  labs(x = "Section", y = "Average number of \n comments per article")
+p = p + theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(),
+              axis.line = element_line(colour = "black"),
+              legend.position = "bottom",
+              legend.direction = "horizontal",
+              text = element_text(size=10))
+plot(p)
+
+
+#-----------------------------------------------------------------------------------
+
+#Average shares
+
+# By media
+Shares = DR_pol_sub %>%
+  filter(FB_shared == "1") %>% 
+  group_by(media, section) %>% 
+  summarise(avg_shares = mean(shares_count)) %>% 
+  ungroup %>% 
+  arrange(-avg_shares)
+
+
+p = ggplot(data = Shares, aes(x = reorder(section, avg_shares), y = avg_shares, fill = media))
+p = p + geom_bar(stat = "identity", position = "dodge", width = 0.8) + coord_flip() +
+  labs(x = "Section", y = "Average number of \n shares per article")
+p = p + theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(),
+              axis.line = element_line(colour = "black"),
+              legend.position = "bottom",
+              legend.direction = "horizontal",
+              text = element_text(size=10))
+plot(p)
+
+
+#-----------------------------------------------------------------------------------
+
+# Average sum of likes, shares and comments
+
+# By media
+Sum = DR_pol_sub %>%
+  filter(FB_shared == "1") %>% 
+  group_by(media, section) %>% 
+  summarise(avg_sum = sum(mean(likes_count), mean(shares_count), mean(comments_count))) %>% 
+  ungroup %>%
+  arrange(-avg_sum)
+
+p = ggplot(data = Sum, aes(x = reorder(section, avg_sum), y = avg_sum, fill = media))
+p = p + geom_bar(stat = "identity", position = "dodge", width = 0.8) + coord_flip() +
+    labs(x = "Section", y = "Average number of likes, \n shares and comments per article")
+p = p + theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(),
+              axis.line = element_line(colour = "black"),
+              legend.position = "bottom",
+              legend.direction = "horizontal",
+              text = element_text(size=10))
+plot(p)
+
+
+
+
+```
+
+
+As we see from figure xxx the share of articles posted on the Facebook page, average likes, comments and shares are higher for the inland section than for the international section though the international section contains more articles on the webpage than the inland section. This supports our hypothesis.
+
+### Testing section-influence on Facebook sharing
+To perform a more robust analysis of whether there is a system in which articles DR and Politiken shares on Facebook we will construct a binary-choice model. The dependent (binary) variable is FB_shared and the explanatory variable is section. The model is constructed using the glm-function. The output from the model is reported in Table XX
+
+##### **Table XX**
+```
+Probit <- glm(FB_shared ~ section, family=binomial(link="probit"), data=DR_pol_all)
+summary(Probit)
+```
+The reference-section is ‘indland’, and as we see a lot of the section-categories significant effect on the sharing-probability. With this estimates we can’t say anything about the marginal effect from one section or another, but the sign of the coefficients is directly interpretable. We see that sections like ‘kultur’, ‘politik’, and ‘økonomi’ have a significant, positive influence on the sharing-probability while ‘udland’  and ‘penge` have significant, negative influence on sharing-probability.
+
+
+### Supervised learning: Can we predict whether an article is shared on Facebook or not?
+
+```{r, echo=FALSE, cache=FALSE, message=FALSE, warning=FALSE}
+#load texts as Corpus (through tm, from DR and Politiken-directory)
+corp <- VCorpus(VectorSource(DR_pol_sub$text),  readerControl = list(language = "da"))
+
+#add texts as variable (vector) to metadata frame
+DR_pol_sub$texts_corp <- sapply(corp, function(x) paste(x, collapse = " "))
+
+#create corpus (through quanteda) based on vector + variables from DR and Politiken
+corp <- corpus(DR_pol_sub$texts_corp, docvars = DR_pol_sub[, 1:11])
+
+## inspect corpus
+tail(summary(corp, verbose = FALSE))[, 1:11]
+
+# create document x feature matrix (through quanteda)
+# pre-processing steps included 
+dfm <- dfm(corp, language = "danish", 
+              toLower = TRUE,
+              removePunc = TRUE,
+              removeSeparators = TRUE,
+              stem = TRUE,
+              ignoredFeatures = stopwords("danish"),
+              verbose = FALSE
+)
+
+```
+With our sub sample we will now build an algorithm using RTextTool. The following algorithm-design builds upon the nine steps descripted in the article “RTextTools: A Supervised Learning Package for Text Classification” by Jurka et al. (2013). However this process involves a series of choices that we will shortly walk through here. First of all, we need to prepare our data for the analysis. We do that by creating a document-featuring matrix. In that process we also changing all words to lowercase, removing punctuation and separators, stemming the words and ignoring stop words. As we see below that gives us a total of 93.002 features or words. 
+
+##### **Table XX**
+```
+head(dfm) 
+```
+There are two reasons why we want to reduce the total number of features. First of all, the amount of memory required to perform training and classification of a model containing nearly 100.000 features and 4.000 unique observation exceeds an ordinary laptops capacity. Second we don’t want rare and really special words to deliver the majority of the leverage to the model. We remove all words that shows op in less than 80 articles (2% of total). That gives us the following total features:
+
+```{r, echo=FALSE, cache=FALSE, message=FALSE, warning=FALSE}
+## dropping 'rare' terms
+dfm <- trim(dfm, minDoc = 80) ## present in at least 2% of documents
+dim(dfm) ## dimensions of our final document x feature matrix
+```
+
+##### **Table XX**
+```
+head(dfm)
+```
+We now split the subsample in a training- and a test-dataset. We let the training set consist of 4/5 of the total observation and we let R do the random split of the dataset. After the split we creates a so called container which is a matrix that can be used for training and classifying different model types. 
+Now we are ready for training our models. We have chosen to use all available algorithms except Bagging, for later comparison of performance and creating a so called ensemble agreement for enhancing the labeling accuracy.  It is a shame that we have to drop the Bagging-model, since averaging over bootstrap-samples can reduce error from variance, but the process I simply to memory heavy due to the huge amount of data – and since we don’t want to limit the size of the sample or the number of features, we have to drop this model. However, it is our belief that with a total of eight algorithms and the possibility of creating an ensemble agreement, the precision of our classifier will be acceptable. 
+
+After training the model we are ready to actually classifying the models. We do that by using the classify_model-statement from RTextTool for each of the eight models. We create the analytics of the models using create_analytics. The summary of the models is showed below:
+
+##### **Table XXX**
+```
+load(url("https://github.com/bjarkedahl/Group_16/blob/master/analytics.RData?raw=true"))
+summary(analytics)
+```
+In the table above Precision refers to how often a case the particular algorithm predicts as belonging to a class actually belongs to that class. So how often is an article, that the algorithm predicts to be shared on Facebook, actually shared on Facebook? On the other hand, Recall refers to the percentage of the articles shared on Facebook, that the algorithm correctly predicts to be shared on Facebook. The F-score is a weighted average of the above mentioned numbers. 
+
+It is clear that no single algorithm can make solid predicting – that larges F-scores is for SLDA and maximum entropy. Therefore, in line with the recomendation from Jurka et al., we now want to create an ensemble agreement to enhance labeling accuracy. The meaning of this exercise is to maximize the accuracy of our predictions. RTextTools include a function for this called create_ensembleSummary, but as we see above the result is also been printed when you use the summary(analytics)-function. 
+To choose which ensemble to use is basically a trade-off between accuracy and coverage – the greater Recall-accuracy the lower coverage. In this case though, there is 100 % coverage up until the 6th algorithm. For the first five algorithms the Recall accuracy is 82 % - which is pretty good for such a high coverage. 
+
+Both the probit-model and the algorithms indicates, that there definitely is a system in the share-rate on Facebook. If we found very low or no fit for both the probit-model and the algorithm, there would be no reason to think, that there should be any difference in the general kind of stories you will find at DR and Politikens homepage, and the articles, that they share on Facebook. But as mentioned, that is not the case..
+
+HER SKAL DER SKRIVES EN DEL MERE – DET ER DET DER HEDDER PUNKT 3 I VORES DISPOSITION OG ER GRUNDLÆGGENDE VORES TEORISTYKKE:
+
+[Teori-fyld og diskussion af konsekvenserne, hvis det er tilfældet?:] Det ser ud til at der er et system. Zuckerman og hans drenge har i USA fundet en klar tendens til, at de sociale medier er endnu mere skævvredet end de ’traditionelle medier’ i retning mod mere nære historier. Her tager vi hjemmesiderne som de traditionelle medier, og tjekker om medierne er mere biased på de sociale medier. 
+MAN KUNNE SKRIVE UD FRA nedenstående MODEL, SOM BENJAMIN OG JEG HAR SNAKKET OM. Selvom vi ikke undersøger, hvorfor det eventuelt ser sådan ud, så kan vi skrive noget om, at det er interaktionen imellem news-consumers og nyhedsproducenterne, igennem de sociale medier, som er interessant. Særligt når vi ved at den direkte kontakt imellem producenterne og forbrugerne bliver mindre og mindre, som en konsekvens af faldende oplagstal + at flere og flere (særligt unge) i højere grad bruger sociale medier som primær kilde til nyheder. 
+
+
+
+
+
+ 
+One of the overall hypothesis in the Filter Bubble is, that our lives at the internet, including social media, is narrower in the sense of confirming views and not making a representative representation of the world. This assignment sets out to investigate this hypothesis in a Danish context. We want to do that by comparing the foreign/domestic ratio of articles shared on Facebook and looking further on the characteristics on the articles, that have the greatest impact in terms of leveraged in our prediction model. 
+
+But let us start looking at the simplest form of testing the hypothesis: What is the marginal effect on the sharing-probability, if it is labeled ‘udland’ against the mean of all other labels? We see the results below:
+
+```
+load(url("https://github.com/bjarkedahl/Group_16/blob/master/DR%20and%20Politiken%20all.RData?raw=true"))
+DR_pol_all$udland <- ifelse(DR_pol_all$section=="udland", 1, 0)
+probitmfx(FB_shared ~ udland, DR_pol_all)
+
+```
+There are nearly 5 % lower chance, that an article will be shared on Facebook, if it is labeled foreign. It is interesting, that there is effectively no difference whether we look at DR (-4,8%) or Politiken (-4,7%). 
+
+HER SKAL DER KOMME NOGET AF DET, BENJAMIN HAR LAVET TIL DEL 4 I OPGAVEN. 
+
+
+Now we take a closer look at the articles not shared on Facebook and with the highest ensemble probability (above the median). As we see below the articles regarding foreign stuff is heavily overrepresented in this subsample – compared to the total dataset. That is a clear sign, that our ensemble system finds a clear connection between the content of the articles and the sharing-probability. 
+```
+con <- all %>% filter( CONSENSUS_AGREE > 6 & FB_shared ==0) 
+con$totprob <- con$SVM_PROB + con$GLMNET_PROB + con$SLDA_PROB + con$LOGITBOOST_PROB +
+                    con$FORESTS_PROB + con$TREE_PROB + con$MAXENTROPY_PROB
+
+con %>% filter(totprob > median(totprob)) %>% group_by(section) %>% 
+  summarise(amount=n())
+
+DR_pol_all %>% group_by(section) %>% 
+  summarise(amount=n()) 
+
+```
