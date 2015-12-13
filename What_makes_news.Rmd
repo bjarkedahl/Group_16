@@ -25,11 +25,14 @@ library("quanteda")
 library("stm")
 library("RTextTools")
 library("mfx")
+library("MASS")
+library("xtable")
 
 
 # Load data
 load(url("https://github.com/bjarkedahl/Group_16/blob/master/Subset%20of%204000%20obs%20from%20DR%20and%20Politiken.RData?raw=true"))
 
+load(url("https://github.com/bjarkedahl/Group_16/blob/master/DR%20and%20Politiken%20all.RData?raw=true"))
 ```
 
 ### Introduction
@@ -204,14 +207,16 @@ plot(p)
 As we see from figure xxx the share of articles posted on the Facebook page, average likes, comments and shares are higher for the inland section than for the international section though the international section contains more articles on the webpage than the inland section. This supports our hypothesis.
 
 ### Testing section-influence on Facebook sharing
-To perform a more robust analysis of whether there is a system in which articles DR and Politiken shares on Facebook we will construct a binary-choice model. The dependent (binary) variable is FB_shared and the explanatory variable is section. The model is constructed using the glm-function. The output from the model is reported in Table XX
+As the descriptives section illuminated there seems to be differences across sections in regards to what gets on Facebook. In this section we try to investigate further what sections the media's choose to put on Facebook. This is done first by setting up a binary choice model, simply to get the averages and then looking into the selection mechanism using a supervised learning model.
+The dependent (binary) variable in our binary choice model is whether or not the article is shared on Facebook and the explanatory variable is what section the article comes from. The model is constructed using the glm-function. The output from the model is reported in Table 1
 
 ##### **Table XX**
-```
+```{r,kable, echo=FALSE, cache=FALSE, message=FALSE, warning=FALSE}
 Probit <- glm(FB_shared ~ section, family=binomial(link="probit"), data=DR_pol_all)
-summary(Probit)
+kable(summary(Probit)$coef, digits=2)
 ```
-The reference-section is ‘indland’, and as we see a lot of the section-categories significant effect on the sharing-probability. With this estimates we can’t say anything about the marginal effect from one section or another, but the sign of the coefficients is directly interpretable. We see that sections like ‘kultur’, ‘politik’, and ‘økonomi’ have a significant, positive influence on the sharing-probability while ‘udland’  and ‘penge` have significant, negative influence on sharing-probability.
+
+The reference-section is inland news, and as we see a lot of the section-categories have a significantly different effect on the sharing-probability than inland. With this estimates we cannot say anything about the marginal effect from one section or another, but the sign of the coefficients is directly interpretable. We see that sections like culture, politics, and economy have a significant, positive influence on the sharing-probability while foreign news and money section have significant, negative influence on sharing-probability. There is no surprise here since it is interpretable as the averages. However it does underline our hypothesis that social media, in this context Facebook, has a larger focus than the official website on inland news compared to foreign news.
 
 
 ### Supervised learning: Can we predict whether an article is shared on Facebook or not?
@@ -241,12 +246,9 @@ dfm <- dfm(corp, language = "danish",
 )
 
 ```
-With our sub sample we will now build an algorithm using RTextTool. We do this to investigate whether or not there is a clear selection process from the official website to Facebook. The following algorithm-design builds upon the nine steps descripted in the article RTextTools: A Supervised Learning Package for Text Classification by Jurka et al. (2013). However this process involves a series of choices that we will shortly walk through here. First of all, we need to prepare our data for the analysis. We do that by creating a document-featuring matrix. In that process we also change all words to lowercase letters, remove punctuations and separators, stemming the words and ignoring stop words. As we see below that gives us a total of 93.002 features or words.
 
-##### **Table XX**
-```
-head(dfm) 
-```
+With our sub sample we will now build an algorithm using RTextTool. We do this to investigate whether or not there is a clear selection process from the official website to Facebook. The following algorithm-design builds upon the nine steps descripted in the article RTextTools: A Supervised Learning Package for Text Classification by Jurka et al. (2013). However this process involves a series of choices that we will shortly walk through here. First of all, we need to prepare our data for the analysis. We do that by creating a document-featuring matrix. In that process we also change all words to lowercase letters, remove punctuations and separators, stemming the words and ignoring stop words. This gives us a total of 93.002 features or words.
+
 We choose to reduce the number of features, and we do this for two reasons: first - the amount of memory required performing training and classification of a model containing nearly 100.000 features and 4.000 unique observations exceed an ordinary laptops capacity. Second we do not want rare words to deliver the majority of the leverage to the model. We remove all words that show op in less than 80 articles (2% of total), which gives us the following total features:
 
 ```{r, echo=FALSE, cache=FALSE, message=FALSE, warning=FALSE}
@@ -269,12 +271,12 @@ After training the model we are ready to classify the models. We do that by usin
 load(url("https://github.com/bjarkedahl/Group_16/blob/master/analytics.RData?raw=true"))
 summary(analytics)
 ```
-In the table above Precision refers to how often a case the particular algorithm predicts as belonging to a class actually belongs to that class. So how often is an article, that the algorithm predicts to be shared on Facebook, actually shared on Facebook? On the other hand, Recall refers to the percentage of the articles shared on Facebook, that the algorithm correctly predicts to be shared on Facebook. The F-score is a weighted average of the above mentioned numbers. 
+In the table above Precision refers to how often the particular algorithm predicts correct. So in this context how often an article, that the algorithm predicts to be shared on Facebook, actually was shared on Facebook? On the other hand, Recall refers to the percentage of the articles shared on Facebook, the algorithm correctly predicts to be shared on Facebook (Lidt fishy). The F-score is a weighted average of the above mentioned numbers. 
 
-It is clear that no single algorithm can make solid predicting – that larges F-scores is for SLDA and maximum entropy. Therefore, in line with the recomendation from Jurka et al., we now want to create an ensemble agreement to enhance labeling accuracy. The meaning of this exercise is to maximize the accuracy of our predictions. RTextTools include a function for this called create_ensembleSummary, but as we see above the result is also been printed when you use the summary(analytics)-function. 
-To choose which ensemble to use is basically a trade-off between accuracy and coverage – the greater Recall-accuracy the lower coverage. In this case though, there is 100 % coverage up until the 6th algorithm. For the first five algorithms the Recall accuracy is 82 % - which is pretty good for such a high coverage. 
+It is clear that no single algorithm can make solid predicting that larges F-scores is for SLDA and maximum entropy. Therefore, in line with the recommendation from Jurka et al., we now create an ensemble agreement to enhance labeling accuracy. The purpose of this exercise is to maximize the accuracy of our predictions. RTextTools include a function for this called create_ensembleSummary, but as we see above the result is also been printed when you use the summary(analytics)-function. 
+To choose which ensemble to use is basically a trade-off between accuracy and coverage, the greater Recall-accuracy the lower coverage. In this case though, there is 100 % coverage up until the 6th algorithm. For the first five algorithms the Recall accuracy is 82 % - which is pretty good for such a high coverage. 
 
-Both the probit-model and the algorithms indicates, that there definitely is a system in the share-rate on Facebook. If we found very low or no fit for both the probit-model and the algorithm, there would be no reason to think, that there should be any difference in the general kind of stories you will find at DR and Politikens homepage, and the articles, that they share on Facebook. But as mentioned, that is not the case..
+Both the probit-model and the algorithms indicate, that there definitely is a system in the share-rate on Facebook. If we found very low or no fit for both the probit-model and the algorithm, there would be no reason to think, that there should be any difference in the general kind of stories you will find at DR and Politiken's website, and the articles, that they share on Facebook. But as mentioned, that is not the case.
 
 HER SKAL DER SKRIVES EN DEL MERE – DET ER DET DER HEDDER PUNKT 3 I VORES DISPOSITION OG ER GRUNDLÆGGENDE VORES TEORISTYKKE:
 
@@ -288,7 +290,7 @@ MAN KUNNE SKRIVE UD FRA nedenstående MODEL, SOM BENJAMIN OG JEG HAR SNAKKET OM.
  
 One of the overall hypothesis in the Filter Bubble is, that our lives at the internet, including social media, is narrower in the sense of confirming views and not making a representative representation of the world. This assignment sets out to investigate this hypothesis in a Danish context. We want to do that by comparing the foreign/domestic ratio of articles shared on Facebook and looking further on the characteristics on the articles, that have the greatest impact in terms of leveraged in our prediction model. 
 
-But let us start looking at the simplest form of testing the hypothesis: What is the marginal effect on the sharing-probability, if it is labeled ‘udland’ against the mean of all other labels? We see the results below:
+But let us start looking at the simplest form of testing the hypothesis: What is the marginal effect on the sharing-probability, if it is labeled foreigm news against the mean of all other labels? We see the results below:
 
 ```
 load(url("https://github.com/bjarkedahl/Group_16/blob/master/DR%20and%20Politiken%20all.RData?raw=true"))
@@ -301,7 +303,7 @@ There are nearly 5 % lower chance, that an article will be shared on Facebook, i
 HER SKAL DER KOMME NOGET AF DET, BENJAMIN HAR LAVET TIL DEL 4 I OPGAVEN. 
 
 
-Now we take a closer look at the articles not shared on Facebook and with the highest ensemble probability (above the median). As we see below the articles regarding foreign stuff is heavily overrepresented in this subsample – compared to the total dataset. That is a clear sign, that our ensemble system finds a clear connection between the content of the articles and the sharing-probability. 
+Now we take a closer look at the articles not shared on Facebook and with the highest ensemble probability (above the median). As we see below the articles regarding foreign stuff is heavily overrepresented in this subsample compared to the total dataset. That is a clear sign, that our ensemble system finds a clear connection between the content of the articles and the sharing-probability. 
 ```
 con <- all %>% filter( CONSENSUS_AGREE > 6 & FB_shared ==0) 
 con$totprob <- con$SVM_PROB + con$GLMNET_PROB + con$SLDA_PROB + con$LOGITBOOST_PROB +
@@ -313,4 +315,18 @@ con %>% filter(totprob > median(totprob)) %>% group_by(section) %>%
 DR_pol_all %>% group_by(section) %>% 
   summarise(amount=n()) 
 
+```
+
+###What is popular
+There seems to be a very clear system in what type of articles getting selected for facebook as we can see from the previos section. We cannot see exactly what makes an articel quakified for Facebook from the media's point of view, but As stated in the introduction it seems reasonable to asume that the media's 
+
+```{r,}
+
+plot(table(DR_pol_sub$likes_count))
+
+fm_count = glm(likes_count~section, data = DR_pol_sub, family=poisson)
+summary(fm_count)
+
+fm_countnb = glm.nb(likes_count~section, data = DR_pol_sub)
+kable(summary(fm_countnb)$coef, digits=2)
 ```
