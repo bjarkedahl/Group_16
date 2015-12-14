@@ -34,6 +34,15 @@ library("xtable")
 load(url("https://github.com/bjarkedahl/Group_16/blob/master/DR%20and%20Politiken%20all.RData?raw=true"))
 load(url("https://github.com/bjarkedahl/Group_16/blob/master/Subset%20of%204000%20obs%20from%20DR%20and%20Politiken.RData?raw=true"))
 
+DR_pol_all$section = gsub("indland", "Domestic", DR_pol_all$section)
+DR_pol_all$section = gsub("kultur", "Culture", DR_pol_all$section)
+DR_pol_all$section = gsub("magasinet", "The Magazine", DR_pol_all$section)
+DR_pol_all$section = gsub("oekonomi", "Economics", DR_pol_all$section)
+DR_pol_all$section = gsub("penge", "Money", DR_pol_all$section)
+DR_pol_all$section = gsub("politik", "Politics", DR_pol_all$section)
+DR_pol_all$section = gsub("udland", "International", DR_pol_all$section)
+DR_pol_all$section = gsub("viden", "Science", DR_pol_all$section)
+
 ```
 
 # Introduction
