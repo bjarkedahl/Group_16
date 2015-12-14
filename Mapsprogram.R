@@ -99,7 +99,7 @@ face_map = right_join(facebook_iso, map.df, by = "iso")
 ## the Scatter plot
 ## Calculating Distance to Denmark
 # First calculating average longitude and lattitude for each country
-distance = ddply(face_map, .(region), summarize,  lat=mean(lat), long=mean(long))
+distance = ddply(face_map, .(land), summarize,  lat=mean(lat), long=mean(long))
 
 
 #calculating longitude and latitude as radian  
@@ -123,7 +123,8 @@ oversigt = ldply(p.data, data.frame)
 # Getting the number of likes
 oversigt$likes = facebook_article[oversigt$X..i..,7]
 oversigt$land = oversigt$.id
-distance$land = tolower(distance$region)
+
+distance$land = tolower(distance$land)
 
 df = left_join(oversigt, distance, by = "land")
 df = ddply(df,.(land), summarize, avg_like=mean(likes), distance = mean(d))
@@ -134,12 +135,12 @@ remove(facebook_article, facebook_iso, facebook_land, iso, lande_iso, lande.df, 
 remove(t1)
 remove(t3,p.data,link,lande.data,land,i,facebook.data, css.selector)
 
-
+df_map$number_of_articles[is.na(df_map$number_of_articles)] = 0
+face_map$number_of_articles[is.na(face_map$number_of_articles)] = 0
 ############################### Plots ##################################################
 # Plotting the number of articles from Politiken and DR in a Map
 p = ggplot(df_map, aes(x = long, y = lat, group = group, fill = number_of_articles))
 p = p + geom_polygon()
-p = p + scale_fill_gradient(limits = c(0,7000))
 p = p + theme(panel.grid.major = element_blank(),
               panel.grid.minor = element_blank(),
               panel.background = element_blank(),
@@ -158,7 +159,6 @@ arrange(artikler_land, -X..i..)
 ## Plotting the number of articles on Facebook
 p = ggplot(face_map, aes(x = long, y = lat, group = group, fill = number_of_articles))
 p = p + geom_polygon()
-p = p + scale_fill_gradient(limits = c(0,7000))
 p = p + theme(panel.grid.major = element_blank(),
               panel.grid.minor = element_blank(),
               panel.background = element_blank(),
