@@ -131,3 +131,37 @@ p = p + theme(panel.grid.major = element_blank(),
 p = p + labs(title = "Number of articles from each country on Facebook")
 plot(p)
 
+## Calculating Distance to Denmark
+# First calculating average longitude and lattitude
+library(plyr)
+
+distance = ddply(face_map, .(region), summarize,  lat=mean(lat), long=mean(long))
+# Calculates the geodesic distance between two points specified by radian latitude/longitude using the
+# Spherical Law of Cosines (slc)
+
+#calculating longitude and latitude as radian  
+distance$latrad <- (distance$lat*pi/180)
+distance$longrad <- (distance$long*pi/180)
+
+# Calculating distance
+distance$d <- acos(sin(0.972235562)*sin(distance$latrad) + cos(0.972235562)*cos(distance$latrad) * cos(distance$longrad-0.18723309)) * 6371
+
+p.data = list() # initialize empty list
+for (i in lande.df$land){
+  print(paste("processing", i, sep = " "))
+  p.data[[i]] = grep(i,t3)
+  cat(" done!\n")
+}
+
+oversigt = ldply(p.data, data.frame)
+
+oversigt$likes = facebook_article[oversigt$X..i..,7]
+oversigt$land = oversigt$.id
+distance$land = tolower(distance$region)
+
+df = left_join(oversigt, distance, by = "land")
+df = ddply(df,.(land), summarize, avg_like=mean(likes), distance = mean(d))
+
+# Plotting average number of likes as a function of distance to Denmark
+plot(df$distance, df$avg_like, pch = 10, xlab = "Distance from DK", ylab = "Average number of likes", main = "# Likes x Distance")
+     abline(lm(df$avg_like~df$distance), col="red")
