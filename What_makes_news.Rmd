@@ -29,10 +29,16 @@ library("RTextTools")
 library("mfx")
 library("MASS")
 library("xtable")
+library("rvest")
+library("stringr")
+library("ggmap")
+library("countrycode")
+
 
 # Load data
 load(url("https://github.com/bjarkedahl/Group_16/blob/master/DR%20and%20Politiken%20all.RData?raw=true"))
 load(url("https://github.com/bjarkedahl/Group_16/blob/master/Subset%20of%204000%20obs%20from%20DR%20and%20Politiken.RData?raw=true"))
+load(url("https://github.com/bjarkedahl/Group_16/blob/master/maps.RData?raw=true"))
 
 DR_pol_all$section = gsub("indland", "Domestic", DR_pol_all$section)
 DR_pol_all$section = gsub("kultur", "Culture", DR_pol_all$section)
@@ -165,161 +171,7 @@ head(Avg_facebook)
 ```
 
 
-**Figure xxx - Amount of average likes, comments and shares on Facebook**  
-```{r, fig.width=3.3, fig.height=3, echo=FALSE, cache=FALSE, message=FALSE, warning=FALSE}
-#Average likes
 
-# By media
-Likes = DR_pol_all %>%
-  filter(FB_shared == "1") %>% 
-  group_by(media, section) %>% 
-  summarise(avg_likes = mean(likes_count)) %>% 
-  ungroup %>% 
-  arrange(-avg_likes)
-Likes_DR = Likes %>% 
-  filter(media == "DR")
-Likes_Politiken = Likes %>% 
-  filter(media == "politiken")
-
-# DR
-p = ggplot(data = Likes_DR, aes(x = reorder(section, avg_likes), y = avg_likes))
-p = p + geom_bar(stat = "identity", position = "dodge", width = 0.8, fill = "darkgrey") + coord_flip() +
-  labs(title = "DR", x = "Section", y = "Average number of \n likes per article")
-p = p + theme(panel.grid.major = element_blank(),
-              panel.grid.minor = element_blank(),
-              panel.background = element_blank(),
-              axis.line = element_line(colour = "black"),
-              text = element_text(size=10))
-plot(p)
-
-# Politiken
-p = ggplot(data = Likes_Politiken, aes(x = reorder(section, avg_likes), y = avg_likes))
-p = p + geom_bar(stat = "identity", position = "dodge", width = 0.8, fill = "darkgrey") + coord_flip() +
-  labs(title = "Politiken", x = "Section", y = "Average number of \n likes per article")
-p = p + theme(panel.grid.major = element_blank(),
-              panel.grid.minor = element_blank(),
-              panel.background = element_blank(),
-              axis.line = element_line(colour = "black"),
-              text = element_text(size=10))
-plot(p)
-
-#-----------------------------------------------------------------------------------
-
-#Average comments
-
-# By media
-Comments = DR_pol_all %>%
-  filter(FB_shared == "1") %>% 
-  group_by(media, section) %>% 
-  summarise(avg_comments = mean(comments_count)) %>% 
-  ungroup %>% 
-  arrange(-avg_comments)
-Comments_DR = Comments %>% 
-  filter(media == "DR")
-Comments_Politiken = Comments %>% 
-  filter(media == "politiken")
-
-# DR
-p = ggplot(data = Comments_DR, aes(x = reorder(section, avg_comments), y = avg_comments))
-p = p + geom_bar(stat = "identity", position = "dodge", width = 0.8, fill = "darkgrey") + coord_flip() +
-  labs(title = "DR", x = "Section", y = "Average number of \n comments per article")
-p = p + theme(panel.grid.major = element_blank(),
-              panel.grid.minor = element_blank(),
-              panel.background = element_blank(),
-              axis.line = element_line(colour = "black"),
-              text = element_text(size=10))
-plot(p)
-
-# Politiken
-p = ggplot(data = Comments_Politiken, aes(x = reorder(section, avg_comments), y = avg_comments))
-p = p + geom_bar(stat = "identity", position = "dodge", width = 0.8, fill = "darkgrey") + coord_flip() +
-  labs(title = "Politiken", x = "Section", y = "Average number of \n comments per article")
-p = p + theme(panel.grid.major = element_blank(),
-              panel.grid.minor = element_blank(),
-              panel.background = element_blank(),
-              axis.line = element_line(colour = "black"),
-              text = element_text(size=10))
-plot(p)
-
-
-#-----------------------------------------------------------------------------------
-
-#Average shares
-
-# By media
-Shares = DR_pol_all %>%
-  filter(FB_shared == "1") %>% 
-  group_by(media, section) %>% 
-  summarise(avg_shares = mean(shares_count)) %>% 
-  ungroup %>% 
-  arrange(-avg_shares)
-Shares_DR = Shares %>% 
-  filter(media == "DR")
-Shares_Politiken = Shares %>% 
-  filter(media == "politiken")
-
-# DR
-p = ggplot(data = Shares_DR, aes(x = reorder(section, avg_shares), y = avg_shares))
-p = p + geom_bar(stat = "identity", position = "dodge", width = 0.8, fill = "darkgrey") + coord_flip() +
-  labs(title = "DR",x = "Section", y = "Average number of \n shares per article")
-p = p + theme(panel.grid.major = element_blank(),
-              panel.grid.minor = element_blank(),
-              panel.background = element_blank(),
-              axis.line = element_line(colour = "black"),
-              text = element_text(size=10))
-plot(p)
-
-# Politiken
-p = ggplot(data = Shares_Politiken, aes(x = reorder(section, avg_shares), y = avg_shares))
-p = p + geom_bar(stat = "identity", position = "dodge", width = 0.8, fill = "darkgrey") + coord_flip() +
-  labs(title = "Politiken",x = "Section", y = "Average number of \n shares per article")
-p = p + theme(panel.grid.major = element_blank(),
-              panel.grid.minor = element_blank(),
-              panel.background = element_blank(),
-              axis.line = element_line(colour = "black"),
-              text = element_text(size=10))
-plot(p)
-
-
-#-----------------------------------------------------------------------------------
-
-# Average sum of likes, shares and comments
-
-# By media
-Sum = DR_pol_all %>%
-  filter(FB_shared == "1") %>% 
-  group_by(media, section) %>% 
-  summarise(avg_sum = sum(mean(likes_count), mean(shares_count), mean(comments_count))) %>% 
-  ungroup %>%
-  arrange(-avg_sum)
-Sum_DR = Sum %>% 
-  filter(media == "DR")
-Sum_Politiken = Sum %>% 
-  filter(media == "politiken")
-
-# DR
-p = ggplot(data = Sum_DR, aes(x = reorder(section, avg_sum), y = avg_sum))
-p = p + geom_bar(stat = "identity", position = "dodge", width = 0.8, fill = "darkgrey") + coord_flip() +
-  labs(title = "DR",x = "Section", y = "Average number of likes, \n shares and comments per article")
-p = p + theme(panel.grid.major = element_blank(),
-              panel.grid.minor = element_blank(),
-              panel.background = element_blank(),
-              axis.line = element_line(colour = "black"),
-              text = element_text(size=10))
-plot(p)
-
-# Politiken
-p = ggplot(data = Sum_Politiken, aes(x = reorder(section, avg_sum), y = avg_sum))
-p = p + geom_bar(stat = "identity", position = "dodge", width = 0.8, fill = "darkgrey") + coord_flip() +
-  labs(title = "Politiken",x = "Section", y = "Average number of likes, \n shares and comments per article")
-p = p + theme(panel.grid.major = element_blank(),
-              panel.grid.minor = element_blank(),
-              panel.background = element_blank(),
-              axis.line = element_line(colour = "black"),
-              text = element_text(size=10))
-plot(p)
-
-```
 
 
 ```{r, eval=FALSE, echo=FALSE, cache=FALSE, message=FALSE, warning=FALSE}
@@ -603,17 +455,184 @@ DR_pol_all %>% group_by(section) %>%
   summarise(amount=n()) 
 
 ```
+#Is it international news getting left out
+As stated in the introduction the conclusion in the States was that the media in general has become more focused on domestic news and that social media was even more focused on this. To see whether this is the case for Danish News media we want to compare the article intensity by countries. In other words we want to compare how many articles containing information from different countries worldwide. To do this we have searched the articles to see how many time different country names come up in the articles on Facebook and on the official website. The intensity by country are shown in figure xx.
 
-###What is popular
-There seems to be a very clear system in what type of articles getting selected for facebook as we can see from the previos section. We cannot see exactly what makes an articel quakified for Facebook from the media's point of view, but As stated in the introduction it seems reasonable to asume that the media's 
+##Figure x - Article intensity by country
+```{r, fig.width=8, fig.height=8, echo=FALSE, cache=FALSE, message=FALSE, warning=FALSE}
+# Plotting number of articles
+p = ggplot(df_map, aes(x = long, y = lat, group = group, fill = number_of_articles))
+p = p + geom_polygon()
+p = p + scale_fill_gradient(limits = c(0,7000))
+p = p + theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(),
+              axis.line = element_blank(),
+              axis.text.x = element_blank(),
+              axis.text.y = element_blank(),
+              axis.ticks = element_blank(),
+              axis.title.x = element_blank(),
+              axis.title.y = element_blank())
+p = p + labs(title = "All articles")
+plot(p)
 
-```{r,}
+## Plotting the number of articles on Facebook
+p = ggplot(face_map, aes(x = long, y = lat, group = group, fill = number_of_articles))
+p = p + geom_polygon()
+p = p + scale_fill_gradient(limits = c(0,7000))
+p = p + theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(),
+              axis.line = element_blank(),
+              axis.text.x = element_blank(),
+              axis.text.y = element_blank(),
+              axis.ticks = element_blank(),
+              axis.title.x = element_blank(),
+              axis.title.y = element_blank())
+p = p + labs(title = "Article on Facebook")
+plot(p)
 
-plot(table(DR_pol_sub$likes_count))
-
-fm_count = glm(likes_count~section, data = DR_pol_sub, family=poisson)
-summary(fm_count)
-
-fm_countnb = glm.nb(likes_count~section, data = DR_pol_sub)
-kable(summary(fm_countnb)$coef, digits=2)
 ```
+
+The picture is partly as expected in the sense that the majority of the international news come from western countries (USA and Europe) with USA and Germany as the countries with the majority of the articles. There is however a few surprises considering the top 10 as Mali with 2663 articles, Syria with 2639 articles and Oman with 1577 articles. This might however not be as surprising after all. The civil war in Syria has gotten a lot of media attention since it is creating a lot of refugees and can thus potentially be related to a lot of articles describing refugees in Denmark, thus being a closer history than it seems at first sight. 
+This amount of news concerning Mali is due to a civil wat taken place during this period and the large amount of news from Oman cannot be explained that easily. 
+Another interesting thing in the map is the grey spots, which is areas where there have not been one single article concerning this country. This is the case for the majority of Africa, but also for larger parts of Asia. At same sight there seem to be very few news concerning South America, Canada and Australia, thus there seem to be some selection bias towards news from specific countries. 
+What is in our interest is whether or not there seem to be differences between the official website and Facebook and more important if Facebook seem to more focused on news concerning countries closer to Denmark. This do not seem to be the case. There is logically fewer news from all countries, however there does not seem to be a smaller fraction left out from the countries close to Denmark in neither distance or behavior. One interesting thing is that Sweden is moves from a seventh place to a third place when considering Facebook. At the same time Mali moves out of the top ten while Oman and China moves up the letter, thus not creating a one sided picture. 
+While it does not seem as if the media we are considering in this paper seem to make a very clear cut selection about what countries' news they are going to post on Facebook there might still be a selection internally on Facebook invoking people to be more aware of some stories than others. 
+
+
+
+###What gets viewed
+As mentioned earlier we use the number of likes, comments and sharing's as a proxy for popularity, but also as a proxy for how many people getting exposed to the news. We do this since we cannot observe the number of views on Facebook, but we expect there to be a positive correlation with this and the before mentioned. If we start again by considering the different sections of our media and mainly the average number of like's, comments and share's articles in each section receive. 
+Here the results are more in line with what we would expect. The average number of likes, comments and shares are in general highest for domestic news, politics (which in this case primarily is inland politics) and culture for DR. The highest rated on Politiken is in the same line with domestic news and culture as the most popular. In all cases international news seem to be liked and commented little compared to domestic news, especially when considering the fact that politics and culture are mainly domestic news as well. This could suggest that we see some of the same in the Danish media scene as they do in the States, namely that there seems to be a higher focus on news in which we can relate to, in this setting characterized as domestic news. If it is in fact true that the number of likes etc. can be used as a valid proxy for people getting exposed to the news it also seems to be the case that news on the social media is less focused on the international news and that this is not driven by the media primarily choosing domestic news to put on Facebook. 
+
+**Figure xxx - Amount of average likes, comments and shares on Facebook**  
+```{r, fig.width=3.3, fig.height=3, echo=FALSE, cache=FALSE, message=FALSE, warning=FALSE}
+#Average likes
+
+# By media
+Likes = DR_pol_all %>%
+  filter(FB_shared == "1") %>% 
+  group_by(media, section) %>% 
+  summarise(avg_likes = mean(likes_count)) %>% 
+  ungroup %>% 
+  arrange(-avg_likes)
+Likes_DR = Likes %>% 
+  filter(media == "DR")
+Likes_Politiken = Likes %>% 
+  filter(media == "politiken")
+
+# DR
+p = ggplot(data = Likes_DR, aes(x = reorder(section, avg_likes), y = avg_likes))
+p = p + geom_bar(stat = "identity", position = "dodge", width = 0.8, fill = "darkgrey") + coord_flip() +
+  labs(title = "DR", x = "Section", y = "Average number of \n likes per article")
+p = p + theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(),
+              axis.line = element_line(colour = "black"),
+              text = element_text(size=10))
+plot(p)
+
+# Politiken
+p = ggplot(data = Likes_Politiken, aes(x = reorder(section, avg_likes), y = avg_likes))
+p = p + geom_bar(stat = "identity", position = "dodge", width = 0.8, fill = "darkgrey") + coord_flip() +
+  labs(title = "Politiken", x = "Section", y = "Average number of \n likes per article")
+p = p + theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(),
+              axis.line = element_line(colour = "black"),
+              text = element_text(size=10))
+plot(p)
+
+#-----------------------------------------------------------------------------------
+
+#Average comments
+
+# By media
+Comments = DR_pol_all %>%
+  filter(FB_shared == "1") %>% 
+  group_by(media, section) %>% 
+  summarise(avg_comments = mean(comments_count)) %>% 
+  ungroup %>% 
+  arrange(-avg_comments)
+Comments_DR = Comments %>% 
+  filter(media == "DR")
+Comments_Politiken = Comments %>% 
+  filter(media == "politiken")
+
+# DR
+p = ggplot(data = Comments_DR, aes(x = reorder(section, avg_comments), y = avg_comments))
+p = p + geom_bar(stat = "identity", position = "dodge", width = 0.8, fill = "darkgrey") + coord_flip() +
+  labs(title = "DR", x = "Section", y = "Average number of \n comments per article")
+p = p + theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(),
+              axis.line = element_line(colour = "black"),
+              text = element_text(size=10))
+plot(p)
+
+# Politiken
+p = ggplot(data = Comments_Politiken, aes(x = reorder(section, avg_comments), y = avg_comments))
+p = p + geom_bar(stat = "identity", position = "dodge", width = 0.8, fill = "darkgrey") + coord_flip() +
+  labs(title = "Politiken", x = "Section", y = "Average number of \n comments per article")
+p = p + theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(),
+              axis.line = element_line(colour = "black"),
+              text = element_text(size=10))
+plot(p)
+
+
+#-----------------------------------------------------------------------------------
+
+#Average shares
+
+# By media
+Shares = DR_pol_all %>%
+  filter(FB_shared == "1") %>% 
+  group_by(media, section) %>% 
+  summarise(avg_shares = mean(shares_count)) %>% 
+  ungroup %>% 
+  arrange(-avg_shares)
+Shares_DR = Shares %>% 
+  filter(media == "DR")
+Shares_Politiken = Shares %>% 
+  filter(media == "politiken")
+
+# DR
+p = ggplot(data = Shares_DR, aes(x = reorder(section, avg_shares), y = avg_shares))
+p = p + geom_bar(stat = "identity", position = "dodge", width = 0.8, fill = "darkgrey") + coord_flip() +
+  labs(title = "DR",x = "Section", y = "Average number of \n shares per article")
+p = p + theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(),
+              axis.line = element_line(colour = "black"),
+              text = element_text(size=10))
+plot(p)
+
+# Politiken
+p = ggplot(data = Shares_Politiken, aes(x = reorder(section, avg_shares), y = avg_shares))
+p = p + geom_bar(stat = "identity", position = "dodge", width = 0.8, fill = "darkgrey") + coord_flip() +
+  labs(title = "Politiken",x = "Section", y = "Average number of \n shares per article")
+p = p + theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(),
+              axis.line = element_line(colour = "black"),
+              text = element_text(size=10))
+plot(p)
+
+
+```
+
+In fact it seems as if there is a clear tendency to domestic news getting viewed more, which could be due to the fact that these are news people can relate as was our hypothesis.
+
+But is it really the fact that there is a clear tendency for news close to people getting the ost attention? In this section we look into this. However in this context distance is taken very literally, meaning that we look if there seem to be a correlation between distance to Denmark and the average number of likes an article receives on Facebook. To do this once again consider the articles on Facebook, what country the news is about, but now also the distance from this country to Denmark. 
+
+##Figure xx - Number of likes vs. distance
+```{r, fig.width=8, fig.height=8, echo=FALSE, cache=FALSE, message=FALSE, warning=FALSE}
+# Plotting average number of likes as a function of distance to Denmark
+plot(df$distance, df$avg_like, pch = 1, xlab = "Distance from DK, km", ylab = "Average number of likes", main = "Number of likes vs. distance")
+     abline(lm(df$avg_like~df$distance), col="red")
+```
+
+

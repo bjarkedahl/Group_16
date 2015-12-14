@@ -9,7 +9,6 @@ library("countrycode")
 ## This program generates data to country graphs and average likes * distance ##
 # We start by taking in data from all articles
 load(url("https://github.com/bjarkedahl/Group_16/blob/master/DR%20and%20Politiken%20all.RData?raw=true"))
-
 ## Collecting all country names in one dataframe ##
 css.selector = ".MOB"
 link = "https://www.skolekom.dk/~geolog.821009@skolekom.dk/"
@@ -128,6 +127,12 @@ distance$land = tolower(distance$region)
 
 df = left_join(oversigt, distance, by = "land")
 df = ddply(df,.(land), summarize, avg_like=mean(likes), distance = mean(d))
+
+remove(artikler_land)
+remove(distance, DR_pol_all)
+remove(facebook_article, facebook_iso, facebook_land, iso, lande_iso, lande.df, map.df, oversigt)
+remove(t1)
+remove(t3,p.data,link,lande.data,land,i,facebook.data, css.selector)
 
 
 ############################### Plots ##################################################
