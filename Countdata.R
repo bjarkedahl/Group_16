@@ -1,4 +1,3 @@
-install.packages(MASS)
 library(plyr)
 library(dplyr)
 library(MASS)
@@ -46,15 +45,16 @@ for (i in lande.df$land){
 # Gathering number of articles for each country
 artikler_land = ldply(p.data, data.frame)
 
+
 # Changing the country names to english for mapping, doesnt work. think we need to get it from elsewhere
-link = "https://da.wikipedia.org/wiki/ISO_3166-1"
+link = "https://da.wikipedia.org/w/index.php?title=ISO_3166-1&action=edit&section=1"
 
 land = read_html(link) %>% 
-  html_nodes(.flagicon+ a) %>% 
+  html_nodes(#wpTextbox1) %>% 
   html_text()
 iso3166 = read_html(link) %>% 
   html_nodes(td+ td .new) %>% 
   html_text()
-cbind(land, iso3166)
+cbind(land)
 lande.df1 = ldply(lande.data, data.frame)
 lande.df1$land = tolower(as.character(lande.df1$X..i..))
