@@ -1,6 +1,9 @@
 ---
 title: "What makes news social media news"
 author: "Benjamin Wedel Mathiasen, Bjarke Dahl Mogensen, Mikkel Mertz"
+linestretch: 1.5
+geometry: margin=2.5cm
+fontsize: 12pt
 output: html_document
 ---
 
@@ -20,7 +23,6 @@ library ("xml2")
 library ("ggplot2")
 library("mapproj")
 library("tm")
-#library("austin")
 library("quanteda")
 library("stm")
 library("RTextTools")
@@ -28,38 +30,314 @@ library("mfx")
 library("MASS")
 library("xtable")
 
-
 # Load data
+load(url("https://github.com/bjarkedahl/Group_16/blob/master/DR%20and%20Politiken%20all.RData?raw=true"))
 load(url("https://github.com/bjarkedahl/Group_16/blob/master/Subset%20of%204000%20obs%20from%20DR%20and%20Politiken.RData?raw=true"))
 
-load(url("https://github.com/bjarkedahl/Group_16/blob/master/DR%20and%20Politiken%20all.RData?raw=true"))
 ```
 
-### Introduction
-Social media's and in particular Facebook has become a part of the daily life during the last decade. Recent research has shown that a growing part of the younger generations get the majority of their news from social media with Facebook as a popular choice (Reuters Institute Digital News Report 2012, p. 13). The increasing use of social media and the fact that a growing part of the younger generations get their news from social media's might explain why an increasing proportion of Danes read news every day (Danske unges museums- og mediebrug, p 55). 
-But is the news on social media representative? 
-Recent research has shown that the media scene in general are more focused on inland news than previously and the new on social media to an even greater extent when considering the American situation (Rewire 2013).The vast majority if not all social media's monitor online behavior and use various algorithms to determine what specific stories to target the individual. On Facebook this means they control what news should pop up in the top of the newsfeed and thus getting most attention. This may ensure that people get to know what they want to know, but not necessarily what they need to know. Since there is a tendency for people to follow news closer to them more intensive and media tools using this information to help people find what they want to find this seems to be a self-enforcing effect making people get indoctrinated in their own beliefs. 
-The fact that beliefs in this sense are amplified within the closed system that is the access to social media is referred to in the literature simply as "echo chambers" (Sunstein (2001)). The existence of echo chambers potentially narrows peoples' view of the world. An example of this ,taken from "The Filter Bubble": two similar friends search for the same term on Google but get different results and also the number of results vary  (xxx kildehenvisning: Pariser, Eli. The Filter Bubble. 1st edition, VIKING: Penguin Press, 2011, pages 1-3). This happens because of Google's search algorithm, exposing persons to different results, pending on previous search history. Though, not everyone agrees that this is in fact the case. Research made by The Media Insight Project found that in America 86% of people in the age group 18 to 34 years meet views different than their own on social media's, thus making the problem smaller or insignificant.  
-The majority of Danish news media's are represented both on an official website and a corresponding Facebook page - the Facebook page posting links to selected stories. However far from all articles are posted here implying that selection occurs. But how is this selection made? Is it a random draw or is at a specific type of news qualifying for the Facebook page? it could seem reasonable to assume news media simply selecting the articles expected to be most popular in this specific setting thus in its very sense subjecting people getting their news solely from Facebook to a very selected subset of news. It could be the case that a higher share of domestic than international articles are posted on their Facebook page since domestic articles may be more relatable than international articles, thus getting more views. If this is true it might be a significant factor in creating echo chambers. The aim of this paper is twofold: 
-1)	We wish to investigate what type of selection process, if any, that is going on between the official website and Facebook page for a subsection of Danish media 
-2)	We wish to investigate if it is a specific type of articles ending up on Facebook that catches most attention
-We investigate the first by collecting every article published on DR's and Politiken's official website and looking in to what characterize the articles making its way in to Facebook. We do this using a probit model and a supervised learning model. We choose these specific media's since they are the two of the most read online media's thus hopefully catching a large fraction of the overall picture. For the second question we consider the articles selected for Facebook and investigate if it is a specific type of articles getting most attention on Facebook and what characterizes these. We use the number of likes, comments and shares as a proxy for how many people getting exposed to the article. 
-We find that there indeed is a bias towards inland news making its way into Facebook which is also the case for the stories getting the most attentions. 
-In the next section we will give a short overview of the data used in this paper, then we will proceed to examine what characterize new entering Facebook and follow this up by analyzing what makes new on Facebook popular. In the last section we will give some concluding remarks. 
+# Introduction
+Social media and in particular Facebook has become a part of the daily life during the last decade. Recent research has shown that a growing part of the younger generations get the majority of their news from social media with Facebook as a popular choice (Reuters Institute Digital News Report 2012, p. 13). The increasing use of social media and the fact that a growing part of the younger generations get their news from social media might explain why an increasing proportion of Danes read news every day (Danske unges museums- og mediebrug, p. 55).  
+But is the news on social media representative?  
+Recent research has shown that the media scene in general are more focused on domestic news than previously and that the news on social media are to an even greater extent when considering the American situation (Rewire 2013). The vast majority if not all social media monitor online behavior and use various algorithms to determine what specific stories to target the individual. On Facebook, this means they control what news should pop up in the top of the newsfeed and thus gets most attention. This may ensure that people get to know what they want to know but not necessarily, what they need to know. Since there is a tendency for people to follow news closer to them more intensive and media tools on the same time helps people find what they want to find by using this information, it seems to be a self-enforcing effect making people get indoctrinated in their own beliefs.  
+The fact that beliefs in this sense are amplified within the closed system is referred to in the literature simply as "echo chambers" (Sunstein (2001)). The existence of echo chambers potentially narrows peoples' view of the world. An example of this, taken from "The Filter Bubble": two similar friends search for the same term on Google but get different results and also the number of results vary  (Pariser, Eli. The Filter Bubble. 1st edition, VIKING: Penguin Press, 2011, pages 1-3). This happens because of Google's search algorithm, exposing persons to different results, pending on previous search history. Though, not everyone agrees that this is in fact the case. Research made by The Media Insight Project found that in America 86% of people in the age group 18 to 34 years meet views different than their own on social media's, thus making the problem smaller or insignificant (How Millennials Get News: Inside the Habits of America's First Digital Generation. AP, University of Chicago and American Press Institute, march 2015). 
+The majority of Danish news media are represented both on an official website and a corresponding Facebook page - the Facebook page posting links to selected stories. However far from all articles are posted on Facebook implying that selection occurs. But how is this selection made? Is it a random draw or is at a specific type of news qualifying for the Facebook page? In this specific setting, it could seem reasonable to assume news media simply select the articles expected to be most popular thus in its very sense, subjecting people getting their news solely from Facebook, to a very selected subset of news. It could be the case that a higher share of domestic than international articles are posted on their Facebook page since domestic articles may be more relatable than international articles, thus getting more views. If this is true it might be a significant factor in creating echo chambers. The aim of this paper is twofold:  
+1) We wish to investigate what type of selection process, if any, is going on between the official website and Facebook page for a subsection of Danish media  
+2) We wish to investigate if a specific type of articles ending up on Facebook catches most attention
+We investigate the first question by collecting articles published on DR's and Politiken's official website and look into what characterizes the articles making their way to Facebook. We do this, using a probit model and supervised learning models. We chose these specific media since they are two of the most online read media, thus hopefully catching a large fraction of the overall picture. For the second question, we consider the articles selected for Facebook and investigate if a specific type of articles gets most attention on Facebook and what characterizes these. We use the number of likes, comments and shares as a proxy for how many people getting exposed to the article(XX DEN HER LINJE SKAL TILPASSES TIL, HVAD VI VÆLGER AT FORTÆLLE OM).  
+We find that there indeed is a bias in what type of articles are being posted on Facebook, both for DR and Politiken. A higher share of domestic than international articles are being posted on Facebook, and likewise domestic articles are more popular than the international ones. This indicates echo chambers also appear in Denmark.
+The following section, describes how the data is collected. Hereafter, we will proceed to examine what characterizes the news entering Facebook, followed up by analyzing what makes news on Facebook popular. In the last section we will give some concluding remarks.
 
-### Data
-The data used in this paper consists of articles scraped from DR and Politiken's website and their corresponding Facebook pages, DR Nyheder and Politiken. We have scraped all articles from 18th of November 2014 and one year forward. We have chosen to scrape articles for one year to put an upper limit on the number of articles scraped, but still have a serious amount of articles to base our analysis on. This gives us a total of 75,966 articles - 37,747 articles From DR, and 37,219 articles from Politiken. 
+# Data
+The data used in this paper consists of articles scraped from DR and Politiken's website and their corresponding Facebook pages, DR Nyheder and Politiken. We have scraped all articles from 18th of November 2014 and one year forward. We have chosen to scrape articles for one year to put an upper limit on the number of articles scraped, but still have a serious amount of articles to base our analysis on. A total of 74,966 articles were scrapped but after some revising of the data we ended up with a data frame containing 43,244 articles – 21,938 articles From DR, and 21,306 articles from Politiken. 
 
-#### Scraping the websites
-In order to scrape DR and Politiken's website we used Google Chrome's CSS selector extension -SelectorGadget. We scraped the media's news archive for the article's href link (article link) and date of the article release. When this information was obtained we used the article link to scrape the title and text of all articles. At last this information was merged together in one data frame by the articles link. The news section in which the articles were posted was obtained from the articles link. Some article links were directing to an error-page.  These links were left out. Some of the articles text contained links to other articles which had the same CSS path as the article text, meaning the links could not be deselected while the text was selected.  By using the gsub command we removed these links. For practical reasons the articles were scraped in several rounds. Each news section was scraped separately and then all the articles were put together in a data frame at the end. Some articles appeared in more than one section. With a little inspection it was clear that these articles fitted into more than one section so we randomly removed duplicates. The Danish alphabet has some special letters (æ, ø, å) which turned out to have some implications. The letters were not displayed properly in Rstudio so we used the gsub command to substitute the wrongly displayed signs with the correct letters. #Dette er en meget meget grundig gennemgang i forhold til kommandoer osv. er det virkelig n�dvendigt ?
+## Scraping the websites
+In order to scrape DR and Politiken's website we used Google Chrome's CSS selector extension -SelectorGadget. We scraped the media's news archive for the article's href link (article link) and date of the article release. When this information was obtained we used the article link to scrape the title and text of all articles. At last this information was merged together in one data frame by the articles link. The news section in which the articles were posted was obtained from the articles link. Some article links were directing to an error-page.  These links were left out. Also, some of the articles' text contained links to other articles and the belonging title. The links had the same CSS path as the article text, meaning the links could not be deselected while the text was selected. These links/titles were removed by substitution since they could bias our results of the supervised learning models.  
+For practical reasons the articles were scraped in several rounds. For DR each news section was scraped separately whereas for Politiken the articles were scraped by time periods. All the articles were merged together in a data frame at the end. Some articles appeared in more than one section. With a little inspection it was clear that these articles fitted into more than one section so we randomly removed duplicates.  
+The Danish alphabet has some special letters (æ, ø, å) which turned out to have some implications. The letters were not displayed properly in Rstudio and this meant that we could not perform our supervised learning models on the data. This was fixed by substituting in the correct letters.
 
-#### Scraping the Facebook pages
-We Scraped the media's Facebook pages using Facebook's API, which is convenient. Practically we did this using the package Rfacebook in R, where the only thing needed to be stated is a token, which Facebook page to scrape and how many posts to scrape. The token controls what information about the posts is going to be scraped from the stated Facebook page. We scraped the last 10,000 posts to make sure we had posts going back to 18th of November 2014.
-#### Webpage and Facebook page merged
-The data from the media's website and respective Facebook page is merged together by the article link. Everything posted on the Facebook page that is not posted on the website is discarded during the merge.  This only allows us to consider the articles from the official website ending up on Facebook and not the articles on Facebook not on the official website. This could potentially bias our results if this is a specific type of story. However the removed stories where mainly videos from different sources and would then not have made a difference since we only consider articles in the current setting. The new data frame contains all articles scraped from the website and Facebook information about the articles posted on Facebook. 
-#### Too much data: Subsample - Jeg foresl�r vi dropper dette afsnit og skriver det senere. Kan vi ikke sagtens lave alle analyser p�n�r GLM showet p� alt data ?? 
-In our final data frame, DR and Politiken were combined. This data frame contained 75,966 articles. We decided to delete some news sections since some of them contained few articles whereas other news sections have a separate Facebook page. News sections that have their own Facebook page will have a bias in the share of articles posted on Facebook since these articles mainly are posted on other Facebook pages than where we gathered our Facebook information from. We ended up with the following sections:  
-Domestic, International, Politics, Money, Economics, Culture, Science and The Magazine.
+## Scraping the Facebook pages
+We Scraped the medias' Facebook pages using Facebook's API, which is convenient. We scraped information of the number of likes, comments and shares for the last 10,000 posts to make sure we had posts going back to 18th of November 2014.
+
+## Websites and Facebook pages merged
+The data from the medias' websites and Facebook pages are merged together by the article link. Everything posted on the Facebook pages that is not posted on the websites, is discarded during the merge. If what systematically is left out, is a specific type of stories it can potentially bias our results. However, the removed stories were mainly videos from different sources and would not have made a difference since we only consider articles in the current setting. The new data frame contains all articles scraped from the websites and Facebook information about the articles posted on Facebook. 
+
+## Revising the data
+Now that all the data has been put together in a single data frame, we check if it need to be revised. The main purpose of this paper is to consider news articles so, from a subjective view, all sections that do not contain news articles are dropped. Also, sections which has its own Facebook page are dropped since articles from these sections mainly are posted on other Facebook pages than we scraped. If we did not drop sections with a separate Facebook page our results would be bias. The data has been trimmed from containing 36 sections to only contain 8 sections: Domestic, International, Politics, Money, Economics, Culture, Science, and The Magazine. The sections money and politics are only present at DR whilst economics and the magazine only are present at Politiken. The remainder sections are included in both medias.
+
+# From website to Facebook
+
+
+**Figure xx - Share of articles from website getting posted on Facebook**   
+```{r, fig.width=3.3, fig.height=3, echo=FALSE, cache=FALSE, message=FALSE, warning=FALSE}
+# Share of articles posted on Facebook by each section
+
+# By media
+Posted_section = DR_pol_all %>%
+  group_by(media, section, FB_shared) %>% 
+  summarise(amount=n()) %>% 
+  mutate(pct=as.numeric(round(amount/sum(amount)*100, 2))) %>%
+  filter(!FB_shared == "0") %>%
+  ungroup
+Posted_section_DR = Posted_section %>% 
+  filter(media == "DR")
+Posted_section_Politiken = Posted_section %>% 
+  filter(media == "politiken")
+
+# DR
+p = ggplot(data = Posted_section_DR, aes(x = reorder(section, pct), y = pct))
+p = p + geom_bar(stat = "identity", position = "dodge", width = 0.8, fill = "darkgrey") + coord_flip() +
+  labs(title = "DR", x = "Section", y = "Proportion")
+p = p + theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(),
+              axis.line = element_line(colour = "black"),
+              text = element_text(size=10))
+
+plot(p)
+
+# Politiken
+p = ggplot(data = Posted_section_Politiken, aes(x = reorder(section, pct), y = pct))
+p = p + geom_bar(stat = "identity", position = "dodge", width = 0.8, fill = "darkgrey") + coord_flip() +
+  labs(title = "Politiken", x = "Section", y = "Proportion")
+p = p + theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(),
+              axis.line = element_line(colour = "black"),
+              text = element_text(size=10))
+
+plot(p)
+
+
+```
+
+
+```{r, eval=FALSE, echo=FALSE, cache=FALSE, message=FALSE, warning=FALSE}
+# Desciptive statistics: per day
+
+# Remove time of day from date
+DR_pol_all$date = gsub(" KL.+", "", DR_pol_all$date)
+
+# Grup by date
+Date = DR_pol_all %>% 
+  group_by(media, date, FB_shared) %>% 
+  summarise(amount=n()) %>% 
+  mutate(pct=as.numeric(round(amount/sum(amount)*100, 2))) %>%
+  filter(!FB_shared == "0")
+Date_DR = Date %>% 
+  filter(media=="DR")
+Date_politiken = Date %>% 
+  filter(media=="politiken")
+
+
+# Calculate min and max of percent and absolute per day
+#DR
+head(max(Date_DR$pct))
+head(min(Date_DR$pct))
+head(max(Date_DR$amount))
+head(min(Date_DR$amount))
+head(mean(Date_DR$amount))
+#Politiken
+head(max(Date_politiken$pct))
+head(min(Date_politiken$pct))
+head(max(Date_politiken$amount))
+head(min(Date_politiken$amount))
+head(mean(Date_politiken$amount))
+
+# Calculate average of likes, comments and shares per article for each media per day
+Avg_facebook = DR_pol_all %>%
+  filter(FB_shared == "1") %>% 
+  group_by(media) %>% 
+  summarise(avg_likes = mean(likes_count), avg_comments = mean(comments_count),
+            avg_shares = mean(shares_count),
+            avg_sum = sum(mean(likes_count), mean(shares_count), mean(comments_count)))
+
+head(Avg_facebook)
+```
+
+
+**Figure xxx - Amount of average likes, comments and shares on Facebook**  
+```{r, fig.width=3.3, fig.height=3, echo=FALSE, cache=FALSE, message=FALSE, warning=FALSE}
+#Average likes
+
+# By media
+Likes = DR_pol_all %>%
+  filter(FB_shared == "1") %>% 
+  group_by(media, section) %>% 
+  summarise(avg_likes = mean(likes_count)) %>% 
+  ungroup %>% 
+  arrange(-avg_likes)
+Likes_DR = Likes %>% 
+  filter(media == "DR")
+Likes_Politiken = Likes %>% 
+  filter(media == "politiken")
+
+# DR
+p = ggplot(data = Likes_DR, aes(x = reorder(section, avg_likes), y = avg_likes))
+p = p + geom_bar(stat = "identity", position = "dodge", width = 0.8, fill = "darkgrey") + coord_flip() +
+  labs(title = "DR", x = "Section", y = "Average number of \n likes per article")
+p = p + theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(),
+              axis.line = element_line(colour = "black"),
+              text = element_text(size=10))
+plot(p)
+
+# Politiken
+p = ggplot(data = Likes_Politiken, aes(x = reorder(section, avg_likes), y = avg_likes))
+p = p + geom_bar(stat = "identity", position = "dodge", width = 0.8, fill = "darkgrey") + coord_flip() +
+  labs(title = "Politiken", x = "Section", y = "Average number of \n likes per article")
+p = p + theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(),
+              axis.line = element_line(colour = "black"),
+              text = element_text(size=10))
+plot(p)
+
+#-----------------------------------------------------------------------------------
+
+#Average comments
+
+# By media
+Comments = DR_pol_all %>%
+  filter(FB_shared == "1") %>% 
+  group_by(media, section) %>% 
+  summarise(avg_comments = mean(comments_count)) %>% 
+  ungroup %>% 
+  arrange(-avg_comments)
+Comments_DR = Comments %>% 
+  filter(media == "DR")
+Comments_Politiken = Comments %>% 
+  filter(media == "politiken")
+
+# DR
+p = ggplot(data = Comments_DR, aes(x = reorder(section, avg_comments), y = avg_comments))
+p = p + geom_bar(stat = "identity", position = "dodge", width = 0.8, fill = "darkgrey") + coord_flip() +
+  labs(title = "DR", x = "Section", y = "Average number of \n comments per article")
+p = p + theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(),
+              axis.line = element_line(colour = "black"),
+              text = element_text(size=10))
+plot(p)
+
+# Politiken
+p = ggplot(data = Comments_Politiken, aes(x = reorder(section, avg_comments), y = avg_comments))
+p = p + geom_bar(stat = "identity", position = "dodge", width = 0.8, fill = "darkgrey") + coord_flip() +
+  labs(title = "Politiken", x = "Section", y = "Average number of \n comments per article")
+p = p + theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(),
+              axis.line = element_line(colour = "black"),
+              text = element_text(size=10))
+plot(p)
+
+
+#-----------------------------------------------------------------------------------
+
+#Average shares
+
+# By media
+Shares = DR_pol_all %>%
+  filter(FB_shared == "1") %>% 
+  group_by(media, section) %>% 
+  summarise(avg_shares = mean(shares_count)) %>% 
+  ungroup %>% 
+  arrange(-avg_shares)
+Shares_DR = Shares %>% 
+  filter(media == "DR")
+Shares_Politiken = Shares %>% 
+  filter(media == "politiken")
+
+# DR
+p = ggplot(data = Shares_DR, aes(x = reorder(section, avg_shares), y = avg_shares))
+p = p + geom_bar(stat = "identity", position = "dodge", width = 0.8, fill = "darkgrey") + coord_flip() +
+  labs(title = "DR",x = "Section", y = "Average number of \n shares per article")
+p = p + theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(),
+              axis.line = element_line(colour = "black"),
+              text = element_text(size=10))
+plot(p)
+
+# Politiken
+p = ggplot(data = Shares_Politiken, aes(x = reorder(section, avg_shares), y = avg_shares))
+p = p + geom_bar(stat = "identity", position = "dodge", width = 0.8, fill = "darkgrey") + coord_flip() +
+  labs(title = "Politiken",x = "Section", y = "Average number of \n shares per article")
+p = p + theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(),
+              axis.line = element_line(colour = "black"),
+              text = element_text(size=10))
+plot(p)
+
+
+#-----------------------------------------------------------------------------------
+
+# Average sum of likes, shares and comments
+
+# By media
+Sum = DR_pol_all %>%
+  filter(FB_shared == "1") %>% 
+  group_by(media, section) %>% 
+  summarise(avg_sum = sum(mean(likes_count), mean(shares_count), mean(comments_count))) %>% 
+  ungroup %>%
+  arrange(-avg_sum)
+Sum_DR = Sum %>% 
+  filter(media == "DR")
+Sum_Politiken = Sum %>% 
+  filter(media == "politiken")
+
+# DR
+p = ggplot(data = Sum_DR, aes(x = reorder(section, avg_sum), y = avg_sum))
+p = p + geom_bar(stat = "identity", position = "dodge", width = 0.8, fill = "darkgrey") + coord_flip() +
+  labs(title = "DR",x = "Section", y = "Average number of likes, \n shares and comments per article")
+p = p + theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(),
+              axis.line = element_line(colour = "black"),
+              text = element_text(size=10))
+plot(p)
+
+# Politiken
+p = ggplot(data = Sum_Politiken, aes(x = reorder(section, avg_sum), y = avg_sum))
+p = p + geom_bar(stat = "identity", position = "dodge", width = 0.8, fill = "darkgrey") + coord_flip() +
+  labs(title = "Politiken",x = "Section", y = "Average number of likes, \n shares and comments per article")
+p = p + theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(),
+              axis.line = element_line(colour = "black"),
+              text = element_text(size=10))
+plot(p)
+
+```
+
+
+```{r, eval=FALSE, echo=FALSE, cache=FALSE, message=FALSE, warning=FALSE}
+# Number of articles by section
+Articles_section = DR_pol_all %>%
+  group_by(media, section) %>% 
+  summarise(amount=n()) %>% 
+  ungroup
+
+```
+
+
+
+
+
+
+
+
+
+# ALT OVENFOR ER MIT, ALT NEDENFOR ER GAMMELT
+
+
+
+
+
+
+
  
 ### Descriptive statistics
 The first thing to notice when considering the data is that it a fairly small fraction of the articles getting posted on Facebook. 4,499 (11.9 %) of DR's articles and 5,188 (13.9 %) of Politiken's articles are posted on Facebook. 
@@ -280,7 +558,7 @@ Both the probit-model and the algorithms indicate, that there definitely is a sy
 
 HER SKAL DER SKRIVES EN DEL MERE – DET ER DET DER HEDDER PUNKT 3 I VORES DISPOSITION OG ER GRUNDLÆGGENDE VORES TEORISTYKKE:
 
-[Teori-fyld og diskussion af konsekvenserne, hvis det er tilfældet?:] Det ser ud til at der er et system. Zuckerman og hans drenge har i USA fundet en klar tendens til, at de sociale medier er endnu mere skævvredet end de ’traditionelle medier’ i retning mod mere nære historier. Her tager vi hjemmesiderne som de traditionelle medier, og tjekker om medierne er mere biased på de sociale medier. 
+[Teori-fyld og diskussion af konsekvenserne, hvis det er tilfældet?:] Det ser ud til at der er et system. Zuckerman og hans drenge har i USA fundet en klar tendens til, at de sociale medier er endnu mere skævvredet end de 'traditionelle medier' i retning mod mere nære historier. Her tager vi hjemmesiderne som de traditionelle medier, og tjekker om medierne er mere biased på de sociale medier. 
 MAN KUNNE SKRIVE UD FRA nedenstående MODEL, SOM BENJAMIN OG JEG HAR SNAKKET OM. Selvom vi ikke undersøger, hvorfor det eventuelt ser sådan ud, så kan vi skrive noget om, at det er interaktionen imellem news-consumers og nyhedsproducenterne, igennem de sociale medier, som er interessant. Særligt når vi ved at den direkte kontakt imellem producenterne og forbrugerne bliver mindre og mindre, som en konsekvens af faldende oplagstal + at flere og flere (særligt unge) i højere grad bruger sociale medier som primær kilde til nyheder. 
 
 
