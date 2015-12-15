@@ -1,0 +1,1092 @@
+library ("plyr")
+library ("dplyr")
+library ("rvest")
+library ("readr")
+library ("knitr")
+library ("stringr")
+library ("xml2")
+library ("ggplot2")
+library("mapproj")
+library("tm")
+library("quanteda")
+library("stm")
+library("RTextTools")
+library("mfx")
+library("MASS")
+library("xtable")
+library ("lubridate")
+library("shiny")
+library("Rfacebook")
+
+
+#--------- Scraping Facebook ---------------------
+
+
+token <- "CAACEdEose0cBAC6SWCrDI79tMmAiHXO03thO3eeBAgX07eGSbxX5ptm8eCB77XzYQ22uoiQSdZAPyjxbDuDjh8JQnpISsI2c40038BdvCe5VLpveMMDbJj7FwkAw9UKnmr8wMlF9aW7CgnI4sPLkh7YrUUq4IvocmhcMGQxz59hemZCaaAOPaiuxuoX3RLyErOKxFF6AZDZD" 
+
+page <- getPage("DRNyheder", token, n = 10000)
+
+write.csv(page, "C:/Users/Bjarke/Dropbox/Økonomistudie/8.Semester/Social data science/Eksamen/DRNyheder10000.csv", row.names = FALSE)
+
+
+page1 <- getPage("politiken", token, n=10000)
+
+
+write.csv(page1, "C:/Users/Bjarke/Dropbox/Økonomistudie/8.Semester/Social data science/Eksamen/Politiken.csv", row.names = FALSE)
+
+
+#--------- Scraping DR articles for each section ---------------------
+
+# Set period
+Period = seq(as.Date("2014-11-18"), as.Date("2015-11-18"), by="days")
+Dates = format(Period, format = "%d%m%Y")
+
+# Section
+Section = "indland"
+
+# ARTICLES ARE SCRAPED FOR THE FOLLOWING SECTIONS:
+# indland, udland, penge, politik, sport, kultur, viden, levnu, p4, vejret
+
+# Links to scrape links to articles
+link_DR = paste("http://www.dr.dk/nyheder/allenyheder/", Section, "/", Dates, sep = "")
+head(link_DR)
+
+# Function to scrape article link and Date
+scrape_DR = function (link_DR) {
+  my.link = read_html(link_DR, encoding= "UTF-8")
+  href.link = my.link %>%
+    html_nodes(".dr-list:nth-child(1) a" ) %>%
+    html_attr(name = 'href') %>% 
+    as.character()
+  Article.link = paste("http://www.dr.dk", href.link, sep = "") %>% 
+    as.character()
+  Date = my.link %>%
+    html_nodes(".dr-list span" ) %>%
+    html_text()
+  return (cbind(href.link, Article.link, Date))  
+}
+
+# Function to scrape article title, summary and text
+scrape_Article = function (Article.link) {
+  my.link = read_html(Article.link, encoding= "UTF-8")
+  Title = my.link %>%
+    html_nodes("#access-content" ) %>%
+    html_text() %>% 
+    as.character()
+  Summary = my.link %>%
+    html_nodes(".summary" ) %>%
+    html_text() %>% 
+    as.character()
+  Text = my.link %>%
+    html_nodes(".wcms-article-content > p" ) %>%
+    html_text() %>%
+    paste(collapse = " abc1234 ") %>% 
+    as.character()
+  return (cbind(Title, Summary, Text))  
+}
+
+# Scraping article links
+DR.overview = list() 
+for (i in link_DR){
+  print(paste("processing", i, sep = " "))
+  DR.overview[[i]] = scrape_DR(i)
+  Sys.sleep(0.1)
+  cat(" done!\n")
+}
+
+# Put article links in a data frame and extract section
+df.overview=ldply(DR.overview, data.frame)
+df.overview$href.link = tolower(df.overview$href.link)
+df.overview$Article.link = tolower(df.overview$Article.link)
+df.overview$Section = gsub("^/nyheder", "", df.overview$href.link) %>% 
+  str_extract("^/[a-z]*")
+df.overview$Section = gsub("/", "", df.overview$Section)
+
+#Saves the data frame
+write.csv(df.overview, file = paste("C:\\Users\\Benjamin\\Dropbox\\Økonomi studie\\Kandidat\\4. semester\\Social Data Science\\Eksamensopgave\\Data\\", Section, "\\DR oversigt - ", Section, ".csv", sep = ""))
+df.overview$.id = NULL
+df.overview$href.link = NULL
+
+# Scrapes the articles for text
+DR.article = list() 
+for (i in df.overview$Article.link){
+  print(paste("processing", i, sep = " "))
+  article.i = try(scrape_Article(i), silent = TRUE)
+  if(class(article.i) == "try-error")
+    article.i = data.frame()
+  DR.article[[i]] = article.i
+  Sys.sleep(0.1)
+  cat(" done!\n")
+}
+# Put article links in a data frame and removes duplicates
+df.article = ldply(DR.article, data.frame)
+colnames(df.article)[colnames(df.article)==".id"] = "Article.link"
+df.article$Article.link = tolower(df.article$Article.link)
+df.article = df.article[order(df.article$Article.link, df.article$Title, decreasing = TRUE),]
+df.article = df.article[!duplicated(df.article$Title) & !duplicated(df.article$Article.link),]
+df.article$Title = as.character(df.article$Title)
+df.article$Text = as.character(df.article$Text)
+
+#Saves the data frame
+write.csv(df.article, file = paste("C:\\Users\\Benjamin\\Dropbox\\Økonomi studie\\Kandidat\\4. semester\\Social Data Science\\Eksamensopgave\\Data\\", Section, "\\DR artikler - ", Section, ".csv", sep = ""))
+
+Title.length = nchar(df.article$Title)
+head(Title.length, 10)
+
+
+# Linkboxes are removed
+df.article$Text = gsub("LÃ¦s ogsÃ¥:.{0,100}abc1234 ", "", df.article$Text)
+df.article$Text = gsub("Se ogsÃ¥:.{0,100}abc1234 ", "", df.article$Text)
+df.article$Text = gsub("VIDEO:.{0,100}abc1234 ", "", df.article$Text)
+df.article$Text = gsub("BILLEDER:.{0,100}abc1234 ", "", df.article$Text)
+df.article$Text = gsub(" abc1234", "", df.article$Text)
+
+# Put together article dates and text
+df.all = left_join(df.article, df.overview, by = "Article.link")
+df.all = df.all[!duplicated(df.all$Title) & !duplicated(df.all$Article.link),]
+
+# Data is saved in a csv file
+write.csv(df.all, file = paste("C:\\Users\\Benjamin\\Dropbox\\Økonomi studie\\Kandidat\\4. semester\\Social Data Science\\Eksamensopgave\\Data\\", Section, "\\DR hjemmeside data - ", Section, ".csv", sep = ""))
+
+
+#--------- Read DR in data for all sections ---------------------
+
+# Data is read into R
+Indland = data.frame(read.csv("C:\\Users\\Benjamin\\Dropbox\\Økonomi studie\\Kandidat\\4. semester\\Social Data Science\\Eksamensopgave\\Data\\Indland\\DR hjemmeside data - Indland.csv"))
+Kultur = data.frame(read.csv("C:\\Users\\Benjamin\\Dropbox\\Økonomi studie\\Kandidat\\4. semester\\Social Data Science\\Eksamensopgave\\Data\\Kultur\\DR hjemmeside data - Kultur.csv"))
+Lev_nu = data.frame(read.csv("C:\\Users\\Benjamin\\Dropbox\\Økonomi studie\\Kandidat\\4. semester\\Social Data Science\\Eksamensopgave\\Data\\Lev nu\\DR hjemmeside data - Lev nu.csv"))
+Penge = data.frame(read.csv("C:\\Users\\Benjamin\\Dropbox\\Økonomi studie\\Kandidat\\4. semester\\Social Data Science\\Eksamensopgave\\Data\\Penge\\DR hjemmeside data - Penge.csv"))
+Politik = data.frame(read.csv("C:\\Users\\Benjamin\\Dropbox\\Økonomi studie\\Kandidat\\4. semester\\Social Data Science\\Eksamensopgave\\Data\\Politik\\DR hjemmeside data - Politik.csv"))
+Regioner = data.frame(read.csv("C:\\Users\\Benjamin\\Dropbox\\Økonomi studie\\Kandidat\\4. semester\\Social Data Science\\Eksamensopgave\\Data\\Regioner\\DR hjemmeside data - Regioner.csv"))
+Sporten = data.frame(read.csv("C:\\Users\\Benjamin\\Dropbox\\Økonomi studie\\Kandidat\\4. semester\\Social Data Science\\Eksamensopgave\\Data\\Sporten\\DR hjemmeside data - Sporten.csv"))
+Udland = data.frame(read.csv("C:\\Users\\Benjamin\\Dropbox\\Økonomi studie\\Kandidat\\4. semester\\Social Data Science\\Eksamensopgave\\Data\\Udland\\DR hjemmeside data - Udland.csv"))
+Vejret = data.frame(read.csv("C:\\Users\\Benjamin\\Dropbox\\Økonomi studie\\Kandidat\\4. semester\\Social Data Science\\Eksamensopgave\\Data\\Vejret\\DR hjemmeside data - Vejret.csv"))
+Viden = data.frame(read.csv("C:\\Users\\Benjamin\\Dropbox\\Økonomi studie\\Kandidat\\4. semester\\Social Data Science\\Eksamensopgave\\Data\\Viden\\DR hjemmeside data - Viden.csv"))
+
+# All sections are put together in one data frame
+Samlet = rbind(Indland, Kultur, Lev_nu, Penge, Politik, Regioner, Sporten, Udland, Vejret, Viden)
+Samlet$X = NULL
+
+# Duplicates and empty articles are removed
+Samlet = Samlet %>%
+  filter(!duplicated(Title)) %>% # Duplicates apear because som articles are posted in more than one section. We randomly remove duplicates
+  filter(!is.na(Title)) %>% 
+  filter(!is.na(Text)) %>% 
+  filter(!is.na(Section)) %>% 
+  filter(!Summary == "") %>% 
+  filter(!Text == "") 
+
+# Sections are renamed to regioner
+Samlet$Section = gsub("^p$", "regioner", Samlet$Section)
+Samlet$Section = gsub("regionale", "regioner", Samlet$Section)
+
+# Solve problems with danish letters
+# Title
+Samlet$Title = gsub("Ã¦", "æ", Samlet$Title)
+Samlet$Title = gsub("Ã†", "Æ", Samlet$Title)
+Samlet$Title = gsub("Ã¸", "ø", Samlet$Title)
+Samlet$Title = gsub("Ã˜", "Ø", Samlet$Title)
+Samlet$Title = gsub("Ã¥", "å", Samlet$Title)
+Samlet$Title = gsub("Ã…", "Å", Samlet$Title)
+Samlet$Title = gsub("Ã©", "é", Samlet$Title)
+Samlet$Title = gsub("Ãˆ", "É", Samlet$Title)
+Samlet$Title = gsub("â€", "-", Samlet$Title)
+Samlet$Title = gsub("-™", "'", Samlet$Title)
+
+# Summary
+Samlet$Summary = gsub("Ã¦", "æ", Samlet$Summary)
+Samlet$Summary = gsub("Ã†", "Æ", Samlet$Summary)
+Samlet$Summary = gsub("Ã¸", "ø", Samlet$Summary)
+Samlet$Summary = gsub("Ã˜", "Ø", Samlet$Summary)
+Samlet$Summary = gsub("Ã¥", "å", Samlet$Summary)
+Samlet$Summary = gsub("Ã…", "Å", Samlet$Summary)
+Samlet$Summary = gsub("Ã©", "é", Samlet$Summary)
+Samlet$Summary = gsub("Ãˆ", "É", Samlet$Summary)
+Samlet$Summary = gsub("â€", "-", Samlet$Summary)
+Samlet$Summary = gsub("-™", "'", Samlet$Summary)
+
+# Text
+Samlet$Text = gsub("Ã¦", "æ", Samlet$Text)
+Samlet$Text = gsub("Ã†", "Æ", Samlet$Text)
+Samlet$Text = gsub("Ã¸", "ø", Samlet$Text)
+Samlet$Text = gsub("Ã˜", "Ø", Samlet$Text)
+Samlet$Text = gsub("Ã¥", "å", Samlet$Text)
+Samlet$Text = gsub("Ã…", "Å", Samlet$Text)
+Samlet$Text = gsub("Ã©", "é", Samlet$Text)
+Samlet$Text = gsub("Ãˆ", "É", Samlet$Text)
+Samlet$Text = gsub("â€", "-", Samlet$Text)
+Samlet$Text = gsub("-™", "'", Samlet$Text)
+
+# Makes all text to lowercase letters
+Samlet$Title = tolower(Samlet$Title)
+Samlet$Summary = tolower(Samlet$Summary)
+Samlet$Text = tolower(Samlet$Text)
+
+# Creates a variable indicating this is DR data
+Samlet$Media = "DR"
+
+# Data is saved in a csv file
+write.csv(Samlet, file = "C:\\Users\\Benjamin\\Dropbox\\Økonomi studie\\Kandidat\\4. semester\\Social Data Science\\Eksamensopgave\\Data\\Alle artikler.csv")
+
+
+
+#--------- Merge DR data with Facebook data ---------------------
+
+
+# Data is loaded into R
+DR_facebook = data.frame(read.csv("https://raw.githubusercontent.com/bjarkedahl/Group_16/master/DRNyheder10000.csv"))
+DR_homepage = data.frame(read.csv("https://raw.githubusercontent.com/bjarkedahl/Group_16/master/DR%20-%20Alle%20artikler.csv"))
+
+# Letters are turned into lowercase letters
+names(DR_facebook) = tolower(names(DR_facebook))
+names(DR_homepage) = tolower(names(DR_homepage))
+
+# Column name with article link is made ready to merge the two datasets by the link
+names(DR_facebook)[names(DR_facebook)=="link"] = "article.link"
+DR_facebook$article.link = tolower(DR_facebook$article.link)
+DR_facebook$article.link = as.character(DR_facebook$article.link)
+DR_homepage$article.link = as.character(DR_homepage$article.link)
+
+# Website and Facebook data are merged together and duplicates are removed
+All_Left = left_join(DR_homepage, DR_facebook, by = "article.link")
+All_Left = All_Left[!duplicated(All_Left$article.link),]
+
+# Drops columns
+drops <- c("x", "from_id","from_name", "type", "id")
+All_Left = All_Left[,!(names(All_Left) %in% drops)]
+
+# Date column is transformed to date format
+All_Left$date = gsub("\\.", "-", All_Left$date)
+All_Left$date = gsub(" januar ", "01-", All_Left$date)
+All_Left$date = gsub(" februar ", "02-", All_Left$date)
+All_Left$date = gsub(" marts ", "03-", All_Left$date)
+All_Left$date = gsub(" april ", "04-", All_Left$date)
+All_Left$date = gsub(" maj ", "05-", All_Left$date)
+All_Left$date = gsub(" juni ", "06-", All_Left$date)
+All_Left$date = gsub(" juli ", "07-", All_Left$date)
+All_Left$date = gsub(" august ", "08-", All_Left$date)
+All_Left$date = gsub(" september ", "09-", All_Left$date)
+All_Left$date = gsub(" oktober ", "10-", All_Left$date)
+All_Left$date = gsub(" november ", "11-", All_Left$date)
+All_Left$date = gsub(" december ", "12-", All_Left$date)
+
+All_Left$date = as.Date(All_Left$date, format = "%d-%m-%Y")
+names(All_Left)[names(All_Left)=="created_time"] = "date_facebook"
+
+# Date posted on Facebook is transformed to date format
+All_Left$date_facebook = gsub("T.*", "", All_Left$date_facebook) %>% 
+  as.Date()
+
+# Turn into lowercase letters
+All_Left$message = tolower(All_Left$message)
+
+# Creates a variable indicating if article was posted on Facebook
+All_Left$shared_facebook = ifelse(is.na(All_Left$date_facebook), "no", "yes")
+
+# Data is saved in a csv file
+write.csv(All_Left, file = "C:\\Users\\Benjamin\\Dropbox\\Økonomi studie\\Kandidat\\4. semester\\Social Data Science\\Eksamensopgave\\Data\\DR - data fra hjemmeside og facebook.csv")
+
+
+
+#--------- Scrape Politiken ---------------------
+
+
+# This is the program collecting all articles from politiken from the 18. nov 2014 - 18. nov 2015
+" it is made into smaller loops since it takes forever to run. "
+# Setting the dates to loop over
+Period = seq(as.Date("2014-11-18"), as.Date("2015-01-01"), by="days")
+Dates1 = format(Period, format = "%Y-%m-%d")
+
+Period = seq(as.Date("2015-01-02"), as.Date("2015-03-01"), by="days")
+Dates2 = format(Period, format = "%Y-%m-%d")
+
+Period = seq(as.Date("2015-03-02"), as.Date("2015-05-01"), by="days")
+Dates3 = format(Period, format = "%Y-%m-%d")
+
+Period = seq(as.Date("2015-05-02"), as.Date("2015-07-01"), by="days")
+Dates4 = format(Period, format = "%Y-%m-%d")
+
+Period = seq(as.Date("2015-07-02"), as.Date("2015-09-01"), by="days")
+Dates5 = format(Period, format = "%Y-%m-%d")
+
+Period = seq(as.Date("2015-09-02"), as.Date("2015-11-18"), by="days")
+Dates6 = format(Period, format = "%Y-%m-%d")
+
+# Setting the main link to Politiken for each date
+link_politiken1 = paste("http://politiken.dk/arkiv/?arkivdato=",Dates1, sep = "")
+link_politiken2 = paste("http://politiken.dk/arkiv/?arkivdato=",Dates2, sep = "")
+link_politiken3 = paste("http://politiken.dk/arkiv/?arkivdato=",Dates3, sep = "")
+link_politiken4 = paste("http://politiken.dk/arkiv/?arkivdato=",Dates4, sep = "")
+link_politiken5 = paste("http://politiken.dk/arkiv/?arkivdato=",Dates5, sep = "")
+link_politiken6 = paste("http://politiken.dk/arkiv/?arkivdato=",Dates6, sep = "")
+
+# Generating function collecting article links and dates
+scrape_politiken = function(link_politiken) {
+  link = read_html(link_politiken)
+  p.link = link %>%
+    html_nodes(".archive-bottom a") %>%
+    html_attr(name = 'href')
+  Date = link %>%
+    html_nodes(".archive-date") %>%
+    html_text()
+  closeAllConnections()
+  return(cbind(p.link, Date))
+}
+
+
+# Generating function to collect Title, subtitle and text for each article
+scrape_article = function(p.link) {
+  link_article = read_html(p.link)
+  Text = link_article %>%
+    html_nodes("#art-body") %>%
+    html_text() %>%
+    paste(collapse = "")
+  Title = link_article %>%
+    html_nodes(".rubrik") %>%
+    html_text()
+  return(cbind(Title, Text))
+}
+
+# collecting all article links in a dataframe in 3 steps because it seems to crash if its to large
+p.data1 = list() # initialize empty list
+for (i in link_politiken1){
+  print(paste("processing", i, sep = " "))
+  p.data1[[i]] = scrape_politiken(i)
+  # waiting one second between hits
+  cat(" done!\n")
+}
+
+
+p.data2 = list() # initialize empty list
+for (i in link_politiken2){
+  print(paste("processing", i, sep = " "))
+  p.data2[[i]] = scrape_politiken(i)
+  # waiting one second between hits
+  cat(" done!\n")
+}
+
+
+p.data3 = list() # initialize empty list
+for (i in link_politiken3){
+  print(paste("processing", i, sep = " "))
+  p.data3[[i]] = scrape_politiken(i)
+  # waiting one second between hits
+  cat(" done!\n")
+}
+
+p.data4 = list() # initialize empty list
+for (i in link_politiken4){
+  print(paste("processing", i, sep = " "))
+  p.data4[[i]] = scrape_politiken(i)
+  # waiting one second between hits
+  cat(" done!\n")
+}
+
+
+p.data5 = list() # initialize empty list
+for (i in link_politiken5){
+  print(paste("processing", i, sep = " "))
+  p.data5[[i]] = scrape_politiken(i)
+  # waiting one second between hits
+  cat(" done!\n")
+}
+
+
+
+p.data6 = list() # initialize empty list
+for (i in link_politiken6){
+  print(paste("processing", i, sep = " "))
+  p.data6[[i]] = scrape_politiken(i)
+  # waiting one second between hits
+  cat(" done!\n")
+}
+
+
+
+df1=ldply(p.data1, data.frame)
+df2=ldply(p.data2, data.frame)
+df3=ldply(p.data3, data.frame)
+df4=ldply(p.data4, data.frame)
+df5=ldply(p.data5, data.frame)
+df6=ldply(p.data6, data.frame)
+
+
+
+# Collecting information on all articles in a dataframe
+
+## DF 1
+p.article1 = list()
+for (i in df1$p.link[1:2000]) {
+  print(paste("processing", i, sep = " "))
+  article.i = try(scrape_article(i), silent = TRUE)
+  if (class(article.i) =="try-error")
+    article.i = data.frame()
+  p.article1[[i]] = article.i
+  cat(" done!\n") 
+}
+save.image("X:/MikkelM/SDS/R/politiken.RData")
+
+for (i in df1$p.link[2001:4772]) {
+  print(paste("processing", i, sep = " "))
+  article.i = try(scrape_article(i), silent = TRUE)
+  if (class(article.i) =="try-error")
+    article.i = data.frame()
+  p.article1[[i]] = article.i
+  cat(" done!\n") 
+}
+
+df_article1=ldply(p.article1, data.frame)
+
+save.image("X:/MikkelM/SDS/R/politiken.RData")
+
+## DF 2
+-+
+  
+  for (i in df2$p.link[2001:4000]) {
+    print(paste("processing", i, sep = " "))
+    article.i = try(scrape_article(i), silent = TRUE)
+    if (class(article.i) =="try-error")
+      article.i = data.frame()
+    p.article2[[i]] = article.i
+    cat(" done!\n") 
+  }
+
+save.image("X:/MikkelM/SDS/R/politiken.RData")
+
+for (i in df2$p.link[4001:5500]) {
+  print(paste("processing", i, sep = " "))
+  article.i = try(scrape_article(i), silent = TRUE)
+  if (class(article.i) =="try-error")
+    article.i = data.frame()
+  p.article2[[i]] = article.i
+  cat(" done!\n") 
+}
+
+save.image("X:/MikkelM/SDS/R/politiken.RData")
+
+for (i in df2$p.link[5501:6292]) {
+  print(paste("processing", i, sep = " "))
+  article.i = try(scrape_article(i), silent = TRUE)
+  if (class(article.i) =="try-error")
+    article.i = data.frame()
+  p.article2[[i]] = article.i
+  cat(" done!\n") 
+}
+
+df_article2=ldply(p.article2, data.frame)
+save.image("X:/MikkelM/SDS/R/politiken.RData")
+
+
+
+## DF3
+p.article3 = list()
+for (i in df3$p.link) {
+  print(paste("processing", i, sep = " "))
+  article.i = try(scrape_article(i), silent = TRUE)
+  if (class(article.i) =="try-error")
+    article.i = data.frame()
+  p.article3[[i]] = article.i
+  cat(" done!\n") 
+}
+
+save.image("X:/MikkelM/SDS/R/politiken.RData")
+
+for (i in df3$p.link) {
+  print(paste("processing", i, sep = " "))
+  article.i = try(scrape_article(i), silent = TRUE)
+  if (class(article.i) =="try-error")
+    article.i = data.frame()
+  p.article3[[i]] = article.i
+  cat(" done!\n") 
+}
+save.image("X:/MikkelM/SDS/R/politiken.RData")
+
+for (i in df3$p.link) {
+  print(paste("processing", i, sep = " "))
+  article.i = try(scrape_article(i), silent = TRUE)
+  if (class(article.i) =="try-error")
+    article.i = data.frame()
+  p.article3[[i]] = article.i
+  cat(" done!\n") 
+}
+
+save.image("X:/MikkelM/SDS/R/politiken.RData")
+
+for (i in df3$p.link[6001:6393]) {
+  print(paste("processing", i, sep = " "))
+  article.i = try(scrape_article(i), silent = TRUE)
+  if (class(article.i) =="try-error")
+    article.i = data.frame()
+  p.article3[[i]] = article.i
+  cat(" done!\n") 
+}
+
+
+df_article3=ldply(p.article3, data.frame)
+save.image("X:/MikkelM/SDS/R/politiken.RData")
+
+## DF4
+p.article4 = list()
+for (i in df4$p.link) {
+  print(paste("processing", i, sep = " "))
+  article.i = try(scrape_article(i), silent = TRUE)
+  if (class(article.i) =="try-error")
+    article.i = data.frame()
+  p.article4[[i]] = article.i
+  cat(" done!\n") 
+}
+
+save.image("X:/MikkelM/SDS/R/politiken.RData")
+
+for (i in df4$p.link) {
+  print(paste("processing", i, sep = " "))
+  article.i = try(scrape_article(i), silent = TRUE)
+  if (class(article.i) =="try-error")
+    article.i = data.frame()
+  p.article4[[i]] = article.i
+  cat(" done!\n") 
+}
+
+save.image("X:/MikkelM/SDS/R/politiken.RData")
+
+for (i in df4$p.link[5001:5277]) {
+  print(paste("processing", i, sep = " "))
+  article.i = try(scrape_article(i), silent = TRUE)
+  if (class(article.i) =="try-error")
+    article.i = data.frame()
+  p.article4[[i]] = article.i
+  cat(" done!\n") 
+}
+
+
+df_article4=ldply(p.article4, data.frame)
+save.image("X:/MikkelM/SDS/R/politiken.RData")
+
+## DF 5 
+p.article5 = list()
+for (i in df5$p.link[701:3500]) {
+  print(paste("processing", i, sep = " "))
+  article.i = try(scrape_article(i), silent = TRUE)
+  if (class(article.i) =="try-error")
+    article.i = data.frame()
+  p.article5[[i]] = article.i
+  cat(" done!\n") 
+}
+
+save.image("X:/MikkelM/SDS/R/politiken.RData")
+
+for (i in df5$p.link[1701:3500]) {
+  print(paste("processing", i, sep = " "))
+  article.i = try(scrape_article(i), silent = TRUE)
+  if (class(article.i) =="try-error")
+    article.i = data.frame()
+  p.article5[[i]] = article.i
+  cat(" done!\n") 
+}
+save.image("X:/MikkelM/SDS/R/politiken.RData")
+
+for (i in df5$p.link[3501:4940]) {
+  print(paste("processing", i, sep = " "))
+  article.i = try(scrape_article(i), silent = TRUE)
+  if (class(article.i) =="try-error")
+    article.i = data.frame()
+  p.article5[[i]] = article.i
+  cat(" done!\n") 
+}
+
+save.image("X:/MikkelM/SDS/R/politiken.RData")
+
+df_article5=ldply(p.article5, data.frame)
+
+## DF 6
+p.article6 = list()
+for (i in df6$p.link[1:1700]) {
+  print(paste("processing", i, sep = " "))
+  article.i = try(scrape_article(i), silent = TRUE)
+  if (class(article.i) =="try-error")
+    article.i = data.frame()
+  p.article6[[i]] = article.i
+  cat(" done!\n") 
+}
+
+save.image("X:/MikkelM/SDS/R/politiken.RData")
+
+for (i in df6$p.link[1701:3500]) {
+  print(paste("processing", i, sep = " "))
+  article.i = try(scrape_article(i), silent = TRUE)
+  if (class(article.i) =="try-error")
+    article.i = data.frame()
+  p.article6[[i]] = article.i
+  cat(" done!\n") 
+}
+
+save.image("X:/MikkelM/SDS/R/politiken.RData")
+
+for (i in df6$p.link[3501:5000]) {
+  print(paste("processing", i, sep = " "))
+  article.i = try(scrape_article(i), silent = TRUE)
+  if (class(article.i) =="try-error")
+    article.i = data.frame()
+  p.article6[[i]] = article.i
+  cat(" done!\n") 
+}
+
+save.image("X:/MikkelM/SDS/R/politiken.RData")
+
+for (i in df6$p.link[5001:6200]) {
+  print(paste("processing", i, sep = " "))
+  article.i = try(scrape_article(i), silent = TRUE)
+  if (class(article.i) =="try-error")
+    article.i = data.frame()
+  p.article6[[i]] = article.i
+  cat(" done!\n") 
+}
+
+save.image("X:/MikkelM/SDS/R/politiken.RData")
+
+for (i in df6$p.link[6200:7454]) {
+  print(paste("processing", i, sep = " "))
+  article.i = try(scrape_article(i), silent = TRUE)
+  if (class(article.i) =="try-error")
+    article.i = data.frame()
+  p.article6[[i]] = article.i
+  cat(" done!\n") 
+}
+
+
+
+df_article6=ldply(p.article6, data.frame)
+save.image("X:/MikkelM/SDS/R/politiken.RData")
+
+
+politiken = rbind(df_article1, df_article2, df_article3, df_article4, df_article5, df_article6)
+df = rbind(df1, df2, df3, df4, df5, df6)
+
+# Merging the 2 dataframes and cleaning them
+politiken$p.link = politiken$.id
+df$p.link = as.character(df$p.link)
+politiken = left_join(df, politiken, by = "p.link")
+drops <- c(".id.x",".id.y")
+politiken = politiken[,!(names(politiken) %in% drops)]
+
+# Generating Variable for media type
+politiken$medie = "politiken"
+
+# Generating variable for section
+politiken$section = str_extract(politiken$p.link, ".dk/[a-z]*")
+politiken$section = gsub(".dk/", "", politiken$section)
+
+
+# Replacing characters from danish that R doesn't understand with real letters
+politiken$Title = gsub("æ", "?", politiken$Title)
+politiken$Title = gsub("????", "?", politiken$Title)
+politiken$Title = gsub("ø", "?", politiken$Title)
+politiken$Title = gsub("?~", "?", politiken$Title)
+politiken$Title = gsub("å", "?", politiken$Title)
+politiken$Title = gsub("?.", "?", politiken$Title)
+politiken$Title = gsub("é", "?", politiken$Title)
+politiken$Title = gsub("?^", "?", politiken$Title)
+politiken$Title = gsub("????", "-", politiken$Title)
+politiken$Title = gsub("-T", "'", politiken$Title)
+
+politiken$Text = gsub("æ", "?", politiken$Text)
+politiken$Text = gsub("????", "?", politiken$Text)
+politiken$Text = gsub("ø", "?", politiken$Text)
+politiken$Text = gsub("?~", "?", politiken$Text)
+politiken$Text = gsub("å", "?", politiken$Text)
+politiken$Text = gsub("?.", "?", politiken$Text)
+politiken$Text = gsub("é", "?", politiken$Text)
+politiken$Text = gsub("?^", "?", politiken$Text)
+politiken$Text = gsub("????", "-", politiken$Text)
+politiken$Text = gsub("-T", "'", politiken$Text)
+
+
+politiken_1 = unique(politiken[, ])
+
+
+
+save.image("X://MikkelM//SDS//R//Group_16//politiken.RData")
+write.csv(politiken, file = "X:\\MikkelM\\SDS\\R\\Group_16\\politiken_data.csv")
+
+
+
+#--------- Merge Politiken and Facebook ---------------------
+
+
+# Reading in data from 
+politiken = data.frame(read.csv("X:\\MikkelM\\SDS\\R\\Group_16\\politiken_data.csv"))
+politiken_facebook = data.frame(read.csv("X:\\MikkelM\\SDS\\R\\Group_16\\politiken10000.csv"))
+
+# Rearranging data so it can be merged with  facebook data
+politiken$link=politiken$p.link
+politiken_facebook$link = as.character(politiken_facebook$link)
+politiken=left_join(politiken, politiken_facebook, "link")
+
+# Selecting the variables of interest
+politiken = select(politiken, link, Title, Text, Date, section,
+                   medie, likes_count, comments_count, shares_count)
+
+
+# Data is saved as .Rdata
+save.image("X://MikkelM//SDS//R//Group_16//politiken_all.RData")
+
+
+
+
+#--------- Merge DR and Politiken data and create subsample ---------------------
+
+
+# Load DR data
+DR = data.frame(read.csv("https://raw.githubusercontent.com/bjarkedahl/Group_16/master/DR%20-%20data%20fra%20hjemmeside%20og%20facebook.csv"))
+
+#Politiken-data loaded via. Rdata, since the file was to large to share on Github 
+load(url("https://github.com/bjarkedahl/Group_16/blob/master/politiken_all.RData?raw=true"))
+
+#Data
+DR$X <- NULL
+DR$summary <- NULL
+DR$message <- NULL
+DR$date_facebook <- NULL
+politiken$shared_facebook <- ifelse(is.na(politiken$likes_count), "no", "yes")
+names(politiken)[names(politiken)=="medie"] ="media"
+names(politiken)[names(politiken)=="Text"] ="text"
+names(politiken)[names(politiken)=="Date"] ="date"
+names(politiken)[names(politiken)=="Title"] ="title"
+politiken$title = tolower(politiken$title)
+politiken$text = tolower(politiken$text)
+names(DR)[names(DR)=="article.link"] = "link"
+DR_pol <- rbind.data.frame(DR, politiken)
+DR_pol$FB_shared <- ifelse(DR_pol$shared_facebook == "yes", 1,0)
+DR_pol$shared_facebook <- NULL
+
+#Cleaning dataset for sections
+keep <- c("magasinet", "viden", "oekonomi", "kultur", "politik", "indland", "penge", "udland")
+Ren_DR_pol <- filter(DR_pol, (section %in% keep))
+
+#Making sub_sample with 4000 unique observations
+Ren_DR_pol$id <- as.numeric(as.factor(Ren_DR_pol$link))
+
+set.seed(17)
+sub <- Ren_DR_pol[sample(nrow(Ren_DR_pol), 4000), ] 
+
+# Data is saved in a csv file
+write.csv(sub, file = "Z:\\SDS\\Subset of 4000 obs from DR and Politiken.csv")
+write.csv(Ren_DR_pol, file = "Z:\\SDS\\DR and Politiken all.csv")
+
+
+
+#--------- Probit and logit models ---------------------
+
+load(url("https://github.com/bjarkedahl/Group_16/blob/master/Subset%20of%204000%20obs%20from%20DR%20and%20Politiken.RData?raw=true"))
+load(url("https://github.com/bjarkedahl/Group_16/blob/master/DR%20and%20Politiken%20all.RData?raw=true"))
+
+
+#Probit and logit models - Depending variables: Sections
+
+
+Probit <- glm(FB_shared ~ section, family=binomial(link="probit"), data=DR_pol_all)
+summary(Probit)
+?filter
+DR_udland_indland <- filter(DR_pol_all, section == c("udland", "indland") )
+
+DR_pol_all$udland <- ifelse(DR_pol_all$section=="udland", 1, 0)
+probitmfx( FB_shared ~ udland , filter(DR_pol_all, media== "politiken"))
+probitmfx( FB_shared ~ udland , filter(DR_pol_all, media== "DR"))
+
+
+
+#--------- Supervised Learning ---------------------
+
+
+
+#load texts as Corpus (through tm, from DR and Politiken-directory)
+corp <- VCorpus(VectorSource(DR_pol_sub$text),  readerControl = list(language = "da"))
+
+#add texts as variable (vector) to metadata frame
+DR_pol_sub$texts_corp <- sapply(corp, function(x) paste(x, collapse = " "))
+
+#create corpus (through quanteda) based on vector + variables from DR and Politiken
+corp <- corpus(DR_pol_sub$texts_corp, docvars = DR_pol_sub[, 1:11])
+
+## inspect corpus
+tail(summary(corp, verbose = FALSE))[, 1:11]
+
+# create document x feature matrix (through quanteda)
+# pre-processing steps included 
+dfm <- dfm(corp, language = "danish", 
+           toLower = TRUE,
+           removePunc = TRUE,
+           removeSeparators = TRUE,
+           stem = TRUE,
+           ignoredFeatures = stopwords("danish"),
+           verbose = FALSE
+)
+
+head(dfm) ## inspect
+
+## dropping 'rare' terms
+dfm <- trim(dfm, minDoc = 80) ## present in at least 2% of documents
+dim(dfm) ## dimensions of our final document x feature matrix
+
+head(dfm,5,200) ## inspection again
+
+## ------------------------------------------------------------------------- ##
+## classification (using RTextTools)
+## ------------------------------------------------------------------------- ##
+
+## prepare the split in training and test set
+set.seed(56) 
+total <- 1:4000 ## total # documents
+train_docs <- sample(1:4000, 3200, replace = FALSE) ## training set - 4/5 of total
+test_docs  <- total[total %in% train_docs == FALSE] ## test set - 1/5 of total
+
+## create "data" for classification
+container <- create_container(dfm, 
+                              docvars(corp)$FB_shared, 
+                              trainSize = train_docs, 
+                              testSize = test_docs,
+                              virgin = FALSE)
+
+## train
+memory.size(max=FALSE)
+support_train <- train_model(container, "SVM") #Hurtig
+glm_train <- train_model(container, "GLMNET") # Hurtig
+SLDA_train <- train_model(container, "SLDA") #Langsom!
+BOOSTING_train <- train_model(container, "BOOSTING") #OK
+RF_train <- train_model(container, "RF") #Langsom
+TREE_train <- train_model(container, "TREE") #OK
+NNET_train <- train_model(container, "NNET") #OK
+MAXENT_train <- train_model(container, "MAXENT") # Hurtig
+
+
+## classify
+support_class <- classify_model(container, support_train)
+glm_class <- classify_model(container, glm_train)
+SLD_class <- classify_model(container, SLDA_train)
+BOOSTING_class <- classify_model(container, BOOSTING_train)
+RF_class <- classify_model(container, RF_train)
+TREE_class <- classify_model(container, TREE_train)
+NNET_class <- classify_model(container, NNET_train)
+MAXENT_class <- classify_model(container, MAXENT_train)
+
+
+## check 'performance'
+analytics <- create_analytics(container, 
+                              cbind(support_class, glm_class, SLD_class, BOOSTING_class,
+                                    RF_class, TREE_class,  MAXENT_class))
+
+
+
+## save out relevant results
+doc_summary <- analytics@document_summary
+
+
+create_ensembleSummary(doc_summary)
+
+## merge back with data
+all <- data.frame(docvars(corp)[test_docs, c(1, 2, 5, 6, 10)], 
+                  doc_summary )
+
+save(analytics, file="C:/Users/Bjarke/Documents/GitHub/Group_16/analytics.RData")
+write.csv(all,"C:/Users/Bjarke/Dropbox/?konomistudie/8.Semester/Social data science/Eksamen/all.csv")
+
+
+##Looking at text not shared on FB and with highest Prob from the Ensemble-algorithm
+con <- all %>% filter( CONSENSUS_AGREE > 6 & FB_shared ==0) 
+con$totprob <- con$SVM_PROB + con$GLMNET_PROB + con$SLDA_PROB + con$LOGITBOOST_PROB +
+  con$FORESTS_PROB + con$TREE_PROB + con$MAXENTROPY_PROB
+
+con %>% filter(totprob > median(totprob)) %>% group_by(section) %>% 
+  summarise(amount=n())
+
+DR_pol_all %>% group_by(section) %>% 
+  summarise(amount=n()) 
+
+## 3-fold cross-validation
+cross_validate(container, 2, algorithm = c("SVM", "SLDA", "BOOSTING",
+                                           "RF", "GLMNET", "TREE", "MAXENT"))
+
+#Baseline ssh
+prop.table(table(all$FB_shared))
+
+
+
+
+#--------- Mapsprogram code ---------------------
+
+
+## This program generates data to country graphs and average likes * distance ##
+# We start by taking in data from all articles
+load(url("https://github.com/bjarkedahl/Group_16/blob/master/DR%20and%20Politiken%20all.RData?raw=true"))
+## Collecting all country names in one dataframe ##
+css.selector = ".MOB"
+link = "https://www.skolekom.dk/~geolog.821009@skolekom.dk/"
+
+lande.data = read_html(link) %>% 
+  html_nodes(css = css.selector) %>% 
+  html_text()
+cbind(lande.data)
+lande.df = ldply(lande.data, data.frame)
+lande.df$land = tolower(as.character(lande.df$X..i..))
+
+# Changing speciel letters
+lande.df$land= gsub("??", "?", lande.df$land)
+lande.df$land= gsub("??", "?", lande.df$land)
+lande.df$land= gsub("?~", "?", lande.df$land)
+
+#Generating vector only containing the text strings
+t1 = c(as.character(DR_pol_all$text))
+
+
+# Collecting the number of articles where the different countries are named
+p.data = list() # initialize empty list
+for (i in lande.df$land){
+  print(paste("processing", i, sep = " "))
+  p.data[[i]] = length(grep(i,t1))
+  cat(" done!\n")
+}
+
+# Gathering number of articles for each country
+artikler_land = ldply(p.data, data.frame)
+
+# Collecting ISO codes and merging them with countrynames for mapping
+link = "https://da.wikipedia.org/wiki/ISO_3166-1"
+
+land = read_html(link) %>% 
+  html_nodes(".wikitable") %>% 
+  html_table()
+iso = ldply(land, data.frame)
+iso$land = gsub("?", "", iso$Land)
+iso$land = str_trim(iso$land)
+iso$land = tolower(as.character(iso$land))
+iso$land= gsub("??", "?", iso$land)
+iso$land= gsub("??", "?", iso$land)
+iso$land= gsub("?~", "?", iso$land)
+iso$land= gsub("?~", "?", iso$land)
+iso$land= gsub("usa", "u.s.a", iso$land)
+
+artikler_land$land = artikler_land$.id
+
+# Megring so we have ISO codes for all countries
+lande_iso = left_join(artikler_land, iso, by = "land")
+lande_iso$number_of_articles = lande_iso$X..i..
+lande_iso$iso = lande_iso$Alfa.2
+
+#Collecting map data
+map.df = map_data("world")
+map.df$iso = countrycode(map.df$region, origin = "country.name", destination = "iso2c")
+
+# Merging with Article Data
+df_map = right_join(lande_iso, map.df, by = "iso")
+
+
+# Next we only want to Collect number of articles on Facebook for each country in a Dataframe
+
+# Selecting articles on Facebook
+facebook_article = subset(DR_pol_all, DR_pol_all$likes_count!="NA")
+
+t3 = c(as.character(facebook_article$text))
+
+# Collecting number of articles each country is named in 
+facebook.data = list() # initialize empty list
+for (i in lande.df$land){
+  print(paste("processing", i, sep = " "))
+  facebook.data[[i]] = length(grep(i,t3))
+  cat(" done!\n")
+}
+
+# Gathering number of articles for each country and merging with iso codes
+facebook_land = ldply(facebook.data, data.frame)
+facebook_land$land = facebook_land$.id
+facebook_iso = left_join(facebook_land, iso, by = "land")
+
+facebook_iso$number_of_articles = facebook_iso$X..i..
+facebook_iso$iso = lande_iso$Alfa.2
+
+face_map = right_join(facebook_iso, map.df, by = "iso")
+
+## the Scatter plot
+## Calculating Distance to Denmark
+# First calculating average longitude and lattitude for each country
+distance = ddply(face_map, .(land), summarize,  lat=mean(lat), long=mean(long))
+
+
+#calculating longitude and latitude as radian  
+distance$latrad <- (distance$lat*pi/180)
+distance$longrad <- (distance$long*pi/180)
+
+# Calculates the geodesic distance between two points specified by radian latitude/longitude using the
+# Spherical Law of Cosines (slc)
+distance$d <- acos(sin(0.972235562)*sin(distance$latrad) + cos(0.972235562)*cos(distance$latrad) * cos(distance$longrad-0.18723309)) * 6371
+
+# Getting the article number for each article from each country
+p.data = list() # initialize empty list
+for (i in lande.df$land){
+  print(paste("processing", i, sep = " "))
+  p.data[[i]] = grep(i,t3)
+  cat(" done!\n")
+}
+
+oversigt = ldply(p.data, data.frame)
+
+# Getting the number of likes
+oversigt$likes = facebook_article[oversigt$X..i..,7]
+oversigt$land = oversigt$.id
+
+distance$land = tolower(distance$land)
+
+df = left_join(oversigt, distance, by = "land")
+df = ddply(df,.(land), summarize, avg_like=mean(likes), distance = mean(d))
+
+remove(artikler_land)
+remove(distance, DR_pol_all)
+remove(facebook_article, facebook_iso, facebook_land, iso, lande_iso, lande.df, map.df, oversigt)
+remove(t1)
+remove(t3,p.data,link,lande.data,land,i,facebook.data, css.selector)
+
+df_map$number_of_articles[is.na(df_map$number_of_articles)] = 0
+face_map$number_of_articles[is.na(face_map$number_of_articles)] = 0
+############################### Plots ##################################################
+# Plotting the number of articles from Politiken and DR in a Map
+p = ggplot(df_map, aes(x = long, y = lat, group = group, fill = number_of_articles))
+p = p + geom_polygon()
+p = p + theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(),
+              axis.line = element_blank(),
+              axis.text.x = element_blank(),
+              axis.text.y = element_blank(),
+              axis.ticks = element_blank(),
+              axis.title.x = element_blank(),
+              axis.title.y = element_blank())
+p = p + labs(title = "Article intensity by country")
+plot(p)
+
+app_1 = ddply(df_map,.(region), summarize, Articles=mean(number_of_articles))
+
+
+head(arrange(app_1, -Articles),20)
+
+
+
+## Plotting the number of articles on Facebook
+p = ggplot(face_map, aes(x = long, y = lat, group = group, fill = number_of_articles))
+p = p + geom_polygon()
+p = p + theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(),
+              axis.line = element_blank(),
+              axis.text.x = element_blank(),
+              axis.text.y = element_blank(),
+              axis.ticks = element_blank(),
+              axis.title.x = element_blank(),
+              axis.title.y = element_blank())
+p = p + labs(title = "Article intensity by country on Facebook")
+plot(p)
+
+app_2 = ddply(face_map,.(region), summarize, Articles=mean(number_of_articles))
+head(arrange(app_2, -Articles),20)
+
+# Plotting average number of likes as a function of distance to Denmark
+plot(df$distance, df$avg_like, pch = 1, xlab = "Distance from DK, km", ylab = "Average number of likes", main = "Number of likes vs. distance")
+abline(lm(df$avg_like~df$distance), col="red")
