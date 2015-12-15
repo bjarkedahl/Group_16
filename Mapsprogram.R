@@ -153,8 +153,12 @@ p = p + theme(panel.grid.major = element_blank(),
 p = p + labs(title = "Article intensity by country")
 plot(p)
 
-arrange(artikler_land, -X..i..)
-head(subset(df_map, select = 'number_of_articles'))
+app_1 = ddply(df_map,.(region), summarize, Articles=mean(number_of_articles))
+
+
+head(arrange(app_1, -Articles),20)
+
+
 
 ## Plotting the number of articles on Facebook
 p = ggplot(face_map, aes(x = long, y = lat, group = group, fill = number_of_articles))
@@ -171,7 +175,8 @@ p = p + theme(panel.grid.major = element_blank(),
 p = p + labs(title = "Article intensity by country on Facebook")
 plot(p)
 
-arrange(facebook_land, -X..i..)
+app_2 = ddply(face_map,.(region), summarize, Articles=mean(number_of_articles))
+head(arrange(app_2, -Articles),20)
 
 # Plotting average number of likes as a function of distance to Denmark
 plot(df$distance, df$avg_like, pch = 1, xlab = "Distance from DK, km", ylab = "Average number of likes", main = "Number of likes vs. distance")

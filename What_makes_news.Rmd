@@ -2,7 +2,7 @@
 title: "What makes news, social media news"
 author: "Benjamin Wedel Mathiasen, Bjarke Dahl Mogensen, Mikkel Mertz"
 geometry: margin=2.5cm
-output: pdf_document
+output: html_document
 linestretch: 1.5
 fontsize: 12pt
 ---
@@ -392,3 +392,12 @@ Jurka, Timothy P; Collingwood, Loren; Boydstun, Amber E.; Grossman, Emiliano; At
 \newpage
 
 #Appendix
+##Number of articles from official website
+```{r, fig.width=3.3, fig.height=2.9, echo=FALSE, cache=FALSE, message=FALSE, warning=FALSE}
+     head(arrange(app_1, -Articles),20)
+```
+
+##Number of articles from Facebook page     
+```{r, fig.width=3.3, fig.height=2.9, echo=FALSE, cache=FALSE, message=FALSE, warning=FALSE}
+     head(arrange(app_2, -Articles),20)
+```
