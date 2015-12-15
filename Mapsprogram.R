@@ -154,7 +154,7 @@ p = p + labs(title = "Article intensity by country")
 plot(p)
 
 arrange(artikler_land, -X..i..)
-
+head(subset(df_map, select = 'number_of_articles'))
 
 ## Plotting the number of articles on Facebook
 p = ggplot(face_map, aes(x = long, y = lat, group = group, fill = number_of_articles))
